@@ -6,6 +6,8 @@
 
 #include "utils.h"
 
+// TODO: fix warnings
+
 void checkForError(char* where) {
     char* msg;
     int err = glGetError();
