@@ -19,16 +19,10 @@
 #define WINDOW_HEIGHT 480
 #define WINDOW_TITLE  "Graphics coursework 1, Harry Cutts"
 
-//static const GLfloat vertices[] = {
-//	-1.0f, -1.0f, 0.0f,
-//	 1.0f, -1.0f, 0.0f,
-//	 0.0f,  1.0f, 0.0f,
-//
-
 static GLuint shaderProgram;
 static glm::mat4 MVP;
 
-static std::vector<glm::vec3> vertices;
+static Mesh mesh;
 
 // Setup methods //
 
@@ -67,17 +61,22 @@ void setupGeometry(void) {
 	glGenVertexArrays(1, &vertexArray);
 	glBindVertexArray(vertexArray);
 
-	// Create a VBO
+	// Vertex VBO
 	GLuint vertexBuffer;
 	glGenBuffers(1, &vertexBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	vertices = generateIcosahedron();
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+	mesh = generateIcosahedron();
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.vertices.size(), mesh.vertices.data(), GL_STATIC_DRAW);
 
 	// Set attributes
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	// Indices VBO
+	GLuint indicesBuffer;
+	glGenBuffers(1, &indicesBuffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * mesh.indices.size(), mesh.indices.data(), GL_STATIC_DRAW);
 }
 
 void setupMVP(void) {
@@ -116,11 +115,13 @@ int main(void) {
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 	checkForError("before main loop");
 
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // Display wireframes
+
 	// Main loop
 	printf("Entering main loop.\n");
 	do {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glDrawArrays(/*GL_TRIANGLES*/GL_LINE_LOOP, 0, vertices.size());
+		glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, NULL);
 
 		glfwSwapBuffers();
 	} while (glfwGetKey(GLFW_KEY_ESC) != GLFW_PRESS && glfwGetWindowParam(GLFW_OPENED));
