@@ -6,6 +6,8 @@
 
 #include <GL/glew.h>
 #include <GL/glfw.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "utils.h"
 
@@ -20,6 +22,9 @@ static const GLfloat vertices[] = {
 	 1.0f, -1.0f, 0.0f,
 	 0.0f,  1.0f, 0.0f,
 };
+
+static GLuint shaderProgram;
+static glm::mat4 MVP;
 
 void setupShaders(void) {
 	// TODO: error checking
@@ -36,15 +41,15 @@ void setupShaders(void) {
 	glCompileShader(fragmentShader);
 
 	// Create the program
-	GLuint program = glCreateProgram();
-	glAttachShader(program, vertexShader);
-	glAttachShader(program, fragmentShader);
+	shaderProgram = glCreateProgram();
+	glAttachShader(shaderProgram, vertexShader);
+	glAttachShader(shaderProgram, fragmentShader);
 
 	// Bind attributes to variables
-	glBindAttribLocation(program, 0, "vertexPosition_modelspace");
+	glBindAttribLocation(shaderProgram, 0, "vertexPosition_modelspace");
 
-	glLinkProgram(program);
-	glUseProgram(program);
+	glLinkProgram(shaderProgram);
+	glUseProgram(shaderProgram);
 
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
@@ -68,6 +73,16 @@ void setupGeometry(void) {
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 }
 
+void setupMVP(void) {
+	glm::mat4 projection = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
+	glm::mat4 view       = glm::lookAt(glm::vec3(3,5,3), glm::vec3(0,0,0), glm::vec3(0,1,0));
+	glm::mat4 model      = glm::mat4(1.0f);
+	glm::mat4 MVP        = projection * view * model;
+
+	GLuint matrixID = glGetUniformLocation(shaderProgram, "MVP");
+	glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
+}
+
 int main(void) {
 	if (!glfwInit()) exit(EXIT_FAILURE);
 
@@ -87,6 +102,7 @@ int main(void) {
 
 	setupShaders();
 	setupGeometry();
+	setupMVP();
 
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
