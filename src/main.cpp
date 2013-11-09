@@ -31,8 +31,8 @@ void setupShaders(void) {
 	GLuint vertexShader   = glCreateShader(GL_VERTEX_SHADER);
 	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 
-	char* vertexShaderSource   = fileToBuffer("shaders/vertex.glsl");
-	char* fragmentShaderSource = fileToBuffer("shaders/fragment.glsl");
+	char* vertexShaderSource   = fileToBuffer((char*)"shaders/vertex.glsl");
+	char* fragmentShaderSource = fileToBuffer((char*)"shaders/fragment.glsl");
 
 	glShaderSource(vertexShader, 1, (const GLchar**)&vertexShaderSource, NULL);
 	glShaderSource(fragmentShader, 1, (const GLchar**)&fragmentShaderSource, NULL);
@@ -113,7 +113,7 @@ int main(void) {
 	setupMVP();
 
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
-	checkForError("before main loop");
+	checkForError((char*)"before main loop");
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // Display wireframes
 

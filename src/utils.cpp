@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
 
 #include <GL/glew.h>
 #include <GL/glfw.h>
@@ -9,19 +10,19 @@
 // TODO: fix warnings
 
 void checkForError(char* where) {
-    char* msg;
-    int err = glGetError();
-    if (!err) return;
+	std::string msg;
+	int err = glGetError();
+	if (!err) return;
 
-    switch (err) {
-    case GL_INVALID_ENUM:                  msg = "GL_INVALID_ENUM"; break;
-    case GL_INVALID_VALUE:                 msg = "GL_INVALID_VALUE"; break;
-    case GL_INVALID_OPERATION:             msg = "GL_INVALID_OPERATION"; break;
-    case GL_INVALID_FRAMEBUFFER_OPERATION: msg = "GL_INVALID_FRAMEBUFFER_OPERATION"; break;
-    case GL_OUT_OF_MEMORY:                 msg = "GL_OUT_OF_MEMORY"; break;
-    default:                               msg = "Unknown Error"; break;
-    }
-    fprintf(stderr, msg);
+	switch (err) {
+	case GL_INVALID_ENUM:                  msg = "GL_INVALID_ENUM"; break;
+	case GL_INVALID_VALUE:                 msg = "GL_INVALID_VALUE"; break;
+	case GL_INVALID_OPERATION:             msg = "GL_INVALID_OPERATION"; break;
+	case GL_INVALID_FRAMEBUFFER_OPERATION: msg = "GL_INVALID_FRAMEBUFFER_OPERATION"; break;
+	case GL_OUT_OF_MEMORY:                 msg = "GL_OUT_OF_MEMORY"; break;
+	default:                               msg = "Unknown Error"; break;
+	}
+	fprintf(stderr, "%s\n", msg.c_str());
 }
 
 char* fileToBuffer(char* path) {
@@ -41,7 +42,7 @@ char* fileToBuffer(char* path) {
     char* buffer = (char*)malloc(length + 1);  // Extra byte for NULL terminator
     fread(buffer, length, 1, file);
     fclose(file);
-    buffer[length] = NULL;
+    buffer[length] = 0;
     printf(" done.\n");
     return buffer;
 }
