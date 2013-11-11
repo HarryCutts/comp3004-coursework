@@ -47,7 +47,12 @@ GLuint createShader(GLenum type, const char* path) {
 	return shader;
 }
 
-void linkProgram(GLuint program) {
+GLuint createProgram(GLuint vertexShader, GLuint geometryShader, GLuint fragmentShader) {
+	GLuint program = glCreateProgram();
+	if (vertexShader)   glAttachShader(program, vertexShader);
+	if (geometryShader) glAttachShader(program, geometryShader);
+	if (fragmentShader) glAttachShader(program, fragmentShader);
+	glBindAttribLocation(program, 0, "vertexPosition");
 	glLinkProgram(program);
 
 	// Check for errors
@@ -61,6 +66,8 @@ void linkProgram(GLuint program) {
 			fprintf(stderr, "Error(s) in shader program:\n%s\n--end of errors--\n", message);
 		}
 	}
+
+	return program;
 }
 
 void setupShaders(void) {
@@ -68,31 +75,21 @@ void setupShaders(void) {
 	GLuint vertexShader   = createShader(GL_VERTEX_SHADER, "shaders/vertex.glsl");
 	GLuint fragmentShader = createShader(GL_FRAGMENT_SHADER, "shaders/fragment.glsl");
 
-	shaderProgram = glCreateProgram();
-	glAttachShader(shaderProgram, vertexShader);
-	glAttachShader(shaderProgram, fragmentShader);
+	shaderProgram = createProgram(vertexShader, 0, fragmentShader);
 
-	// Bind attributes to variables
-	glBindAttribLocation(shaderProgram, 0, "vertexPosition_modelspace");
-
-	linkProgram(shaderProgram);
+	glDeleteShader(vertexShader);
+	glDeleteShader(fragmentShader);
 
 	// Normals program
 	GLuint normalVertexShader   = createShader(GL_VERTEX_SHADER, "shaders/normals/vertex.glsl");
 	GLuint geometryShader       = createShader(GL_GEOMETRY_SHADER, "shaders/normals/geometry.glsl");
 	GLuint normalFragmentShader = createShader(GL_FRAGMENT_SHADER, "shaders/normals/fragment.glsl");
 
-	normalsProgram = glCreateProgram();
-	glAttachShader(normalsProgram, normalVertexShader);
-	glAttachShader(normalsProgram, geometryShader);
-	glAttachShader(normalsProgram, normalFragmentShader);
-	linkProgram(normalsProgram);
+	normalsProgram = createProgram(normalVertexShader, geometryShader, normalFragmentShader);
 
 	glDeleteShader(geometryShader);
 	glDeleteShader(normalVertexShader);
-
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
+	glDeleteShader(normalFragmentShader);
 }
 
 void setupGeometry(void) {

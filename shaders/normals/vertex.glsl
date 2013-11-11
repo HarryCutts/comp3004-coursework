@@ -1,7 +1,7 @@
 #version 330 core
-in vec3 vertexPosition_modelspace;
-out vec3 vertexPosition;
+in vec3 vertexPosition;
+out vec3 position;
 
 void main() {
-	vertexPosition = vertexPosition_modelspace;
+	position = vertexPosition;
 }
