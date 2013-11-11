@@ -7,8 +7,6 @@
 
 #include "utils.h"
 
-// TODO: fix warnings
-
 void checkForError(const char* where) {
 	std::string msg;
 	int err = glGetError();
