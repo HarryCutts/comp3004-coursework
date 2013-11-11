@@ -20,10 +20,15 @@
 #define WINDOW_HEIGHT 480
 #define WINDOW_TITLE  "Graphics coursework 1, Harry Cutts"
 
+#define NUM_SPHERE_ITERATIONS 3
+
 static GLuint shaderProgram, normalsProgram;
 static glm::mat4 MVP;
 
-static Mesh mesh;
+static Mesh sphere, cone;
+static Mesh *mesh;
+
+static GLuint vaoSphere, vaoCone;
 
 static bool showNormals = false;
 
@@ -95,7 +100,7 @@ void setupShaders(void) {
 	glDeleteShader(normalFragmentShader);
 }
 
-void setupGeometry(void) {
+GLuint createVAO(const Mesh &mesh) {
 	// Create a VAO
 	GLuint vertexArray;
 	glGenVertexArrays(1, &vertexArray);
@@ -105,7 +110,6 @@ void setupGeometry(void) {
 	GLuint vertexBuffer;
 	glGenBuffers(1, &vertexBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-	mesh = generateSphere(3);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.vertices.size(), mesh.vertices.data(), GL_STATIC_DRAW);
 
 	// Set attributes
@@ -117,6 +121,15 @@ void setupGeometry(void) {
 	glGenBuffers(1, &indicesBuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * mesh.indices.size(), mesh.indices.data(), GL_STATIC_DRAW);
+
+	return vertexArray;
+}
+
+void setupGeometry(void) {
+	sphere = generateSphere(NUM_SPHERE_ITERATIONS);
+	cone   = generateCone();
+	vaoSphere = createVAO(sphere);
+	vaoCone   = createVAO(cone);
 }
 
 void setupMVP(void) {
@@ -134,14 +147,33 @@ void setupMVP(void) {
 	glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
 }
 
-// Major Methods //
+// Scenes //
+
+void sceneA(void) {
+	glBindVertexArray(vaoSphere);
+	mesh = &sphere;
+	showNormals = false;
+}
+
+void sceneB(void) {
+	glBindVertexArray(vaoCone);
+	mesh = &cone;
+	showNormals = false;
+}
+
+void sceneC(void) {
+	glBindVertexArray(vaoSphere);
+	mesh = &sphere;
+	showNormals = true;
+}
 
 void processInput(void) {
 	if (glfwGetKey(static_cast<int>('A'))) {         // Wire-frame sphere
-		showNormals = false;
+		sceneA();
 	} else if (glfwGetKey(static_cast<int>('B'))) {  // Wire-frame cone
+		sceneB();
 	} else if (glfwGetKey(static_cast<int>('C'))) {  // Wire-frame sphere with normals
-		showNormals = true;
+		sceneC();
 	} else if (glfwGetKey(static_cast<int>('D'))) {  // Shaded sphere
 	} else if (glfwGetKey(static_cast<int>('E'))) {  // Animation
 	} else if (glfwGetKey(static_cast<int>('F'))) {  // Textured object
@@ -177,21 +209,23 @@ int main(void) {
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // Display wireframes
+	sceneA();
 
 	// Main loop
 	printf("Entering main loop.\n");
 	glUseProgram(shaderProgram);
 	do {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, NULL);
+		glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, NULL);
 
 		if (showNormals) {
 			glUseProgram(normalsProgram);
-			glDrawArrays(GL_POINTS, 0, mesh.vertices.size());
+			glDrawArrays(GL_POINTS, 0, mesh->vertices.size());
 			glUseProgram(shaderProgram);
 		}
 
 		glfwSwapBuffers();
+		checkForError("main loop");
 
 		processInput();
 	} while (glfwGetKey(GLFW_KEY_ESC) != GLFW_PRESS && glfwGetWindowParam(GLFW_OPENED));
