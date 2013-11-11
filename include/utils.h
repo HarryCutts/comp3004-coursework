@@ -1,8 +1,8 @@
 #ifndef _UTILS_H
 #define _UTILS_H
 
-void checkForError(char* where);
+void checkForError(const char* where);
 
-char* fileToBuffer(char* path);
+char* fileToBuffer(const char* path);
 
 #endif

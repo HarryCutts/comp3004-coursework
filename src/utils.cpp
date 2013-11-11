@@ -9,7 +9,7 @@
 
 // TODO: fix warnings
 
-void checkForError(char* where) {
+void checkForError(const char* where) {
 	std::string msg;
 	int err = glGetError();
 	if (!err) return;
@@ -22,10 +22,10 @@ void checkForError(char* where) {
 	case GL_OUT_OF_MEMORY:                 msg = "GL_OUT_OF_MEMORY"; break;
 	default:                               msg = "Unknown Error"; break;
 	}
-	fprintf(stderr, "%s\n", msg.c_str());
+	fprintf(stderr, "%s: %s\n", where, msg.c_str());
 }
 
-char* fileToBuffer(char* path) {
+char* fileToBuffer(const char* path) {
     printf("Loading %s...", path);
     FILE *file = fopen(path, "rb");
     if (!file) {
