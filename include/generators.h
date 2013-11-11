@@ -8,5 +8,6 @@ struct Mesh {
 
 
 Mesh generateIcosahedron();
+Mesh generateSphere(int numIterations);
 
 #endif

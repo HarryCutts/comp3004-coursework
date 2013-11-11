@@ -65,7 +65,7 @@ void setupGeometry(void) {
 	GLuint vertexBuffer;
 	glGenBuffers(1, &vertexBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-	mesh = generateIcosahedron();
+	mesh = generateSphere(1);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.vertices.size(), mesh.vertices.data(), GL_STATIC_DRAW);
 
 	// Set attributes
@@ -81,7 +81,7 @@ void setupGeometry(void) {
 
 void setupMVP(void) {
 	glm::mat4 projection = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
-	glm::mat4 view       = glm::lookAt(glm::vec3(3,5,3), glm::vec3(0,0,0), glm::vec3(0,1,0));
+	glm::mat4 view       = glm::lookAt(glm::vec3(3,3,3), glm::vec3(0,0,0), glm::vec3(0,1,0));
 	glm::mat4 model      = glm::mat4(1.0f);
 	glm::mat4 MVP        = projection * view * model;
 
