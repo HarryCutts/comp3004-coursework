@@ -19,28 +19,55 @@
 #define WINDOW_HEIGHT 480
 #define WINDOW_TITLE  "Graphics coursework 1, Harry Cutts"
 
-static GLuint shaderProgram;
+static GLuint shaderProgram, normalsProgram;
 static glm::mat4 MVP;
 
 static Mesh mesh;
 
 // Setup methods //
 
+GLuint createShader(GLenum type, const char* path) {
+	GLuint shader = glCreateShader(type);
+	char* source = fileToBuffer(path);
+	glShaderSource(shader, 1, (const GLchar**)&source, NULL);
+	glCompileShader(shader);
+
+	// Check for errors
+	GLint result;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
+	if (result == GL_FALSE) {
+		int length;
+		char message[1000];
+		glGetShaderInfoLog(shader, 1000, &length, reinterpret_cast<GLchar*>(&message));
+		if (length > 0) {
+			fprintf(stderr, "Error(s) in %s:\n%s\n--end of errors--\n", path, message);
+		}
+	}
+
+	return shader;
+}
+
+void linkProgram(GLuint program) {
+	glLinkProgram(program);
+
+	// Check for errors
+	GLint result;
+	glGetProgramiv(program, GL_LINK_STATUS, &result);
+	if (result == GL_FALSE) {
+		int length;
+		char message[1000];
+		glGetProgramInfoLog(program, 1000, &length, reinterpret_cast<GLchar*>(&message));
+		if (length > 0) {
+			fprintf(stderr, "Error(s) in shader program:\n%s\n--end of errors--\n", message);
+		}
+	}
+}
+
 void setupShaders(void) {
-	// TODO: error checking
-	GLuint vertexShader   = glCreateShader(GL_VERTEX_SHADER);
-	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	// Standard program
+	GLuint vertexShader   = createShader(GL_VERTEX_SHADER, "shaders/vertex.glsl");
+	GLuint fragmentShader = createShader(GL_FRAGMENT_SHADER, "shaders/fragment.glsl");
 
-	char* vertexShaderSource   = fileToBuffer((char*)"shaders/vertex.glsl");
-	char* fragmentShaderSource = fileToBuffer((char*)"shaders/fragment.glsl");
-
-	glShaderSource(vertexShader, 1, (const GLchar**)&vertexShaderSource, NULL);
-	glShaderSource(fragmentShader, 1, (const GLchar**)&fragmentShaderSource, NULL);
-
-	glCompileShader(vertexShader);
-	glCompileShader(fragmentShader);
-
-	// Create the program
 	shaderProgram = glCreateProgram();
 	glAttachShader(shaderProgram, vertexShader);
 	glAttachShader(shaderProgram, fragmentShader);
@@ -48,8 +75,21 @@ void setupShaders(void) {
 	// Bind attributes to variables
 	glBindAttribLocation(shaderProgram, 0, "vertexPosition_modelspace");
 
-	glLinkProgram(shaderProgram);
-	glUseProgram(shaderProgram);
+	linkProgram(shaderProgram);
+
+	// Normals program
+	GLuint normalVertexShader   = createShader(GL_VERTEX_SHADER, "shaders/normals/vertex.glsl");
+	GLuint geometryShader       = createShader(GL_GEOMETRY_SHADER, "shaders/normals/geometry.glsl");
+	GLuint normalFragmentShader = createShader(GL_FRAGMENT_SHADER, "shaders/normals/fragment.glsl");
+
+	normalsProgram = glCreateProgram();
+	glAttachShader(normalsProgram, normalVertexShader);
+	glAttachShader(normalsProgram, geometryShader);
+	glAttachShader(normalsProgram, normalFragmentShader);
+	linkProgram(normalsProgram);
+
+	glDeleteShader(geometryShader);
+	glDeleteShader(normalVertexShader);
 
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
@@ -85,7 +125,12 @@ void setupMVP(void) {
 	glm::mat4 model      = glm::mat4(1.0f);
 	glm::mat4 MVP        = projection * view * model;
 
+	glUseProgram(shaderProgram);
 	GLuint matrixID = glGetUniformLocation(shaderProgram, "MVP");
+	glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
+
+	glUseProgram(normalsProgram);
+	matrixID = glGetUniformLocation(normalsProgram, "MVP");
 	glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
 }
 
@@ -109,19 +154,25 @@ int main(void) {
 	glfwSetWindowTitle(WINDOW_TITLE);
 
 	setupShaders();
+	checkForError("After shader setup");
 	setupGeometry();
+	checkForError("After geometry setup");
 	setupMVP();
+	checkForError("After MVP setup");
 
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
-	checkForError((char*)"before main loop");
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // Display wireframes
 
 	// Main loop
 	printf("Entering main loop.\n");
 	do {
+		glUseProgram(shaderProgram);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, NULL);
+
+		glUseProgram(normalsProgram);
+		glDrawArrays(GL_POINTS, 0, mesh.vertices.size());
 
 		glfwSwapBuffers();
 	} while (glfwGetKey(GLFW_KEY_ESC) != GLFW_PRESS && glfwGetWindowParam(GLFW_OPENED));
