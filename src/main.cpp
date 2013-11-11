@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <stddef.h>
 #include <math.h>
@@ -24,7 +25,7 @@ static glm::mat4 MVP;
 
 static Mesh mesh;
 
-// Setup methods //
+static bool showNormals = false;
 
 GLuint createShader(GLenum type, const char* path) {
 	GLuint shader = glCreateShader(type);
@@ -69,6 +70,8 @@ GLuint createProgram(GLuint vertexShader, GLuint geometryShader, GLuint fragment
 
 	return program;
 }
+
+// Setup methods //
 
 void setupShaders(void) {
 	// Standard program
@@ -131,6 +134,20 @@ void setupMVP(void) {
 	glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
 }
 
+// Major Methods //
+
+void processInput(void) {
+	if (glfwGetKey(static_cast<int>('A'))) {         // Wire-frame sphere
+		showNormals = false;
+	} else if (glfwGetKey(static_cast<int>('B'))) {  // Wire-frame cone
+	} else if (glfwGetKey(static_cast<int>('C'))) {  // Wire-frame sphere with normals
+		showNormals = true;
+	} else if (glfwGetKey(static_cast<int>('D'))) {  // Shaded sphere
+	} else if (glfwGetKey(static_cast<int>('E'))) {  // Animation
+	} else if (glfwGetKey(static_cast<int>('F'))) {  // Textured object
+	}
+}
+
 
 int main(void) {
 	if (!glfwInit()) exit(EXIT_FAILURE);
@@ -163,14 +180,19 @@ int main(void) {
 
 	// Main loop
 	printf("Entering main loop.\n");
+	glUseProgram(shaderProgram);
 	do {
-		glUseProgram(shaderProgram);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, NULL);
 
-		glUseProgram(normalsProgram);
-		glDrawArrays(GL_POINTS, 0, mesh.vertices.size());
+		if (showNormals) {
+			glUseProgram(normalsProgram);
+			glDrawArrays(GL_POINTS, 0, mesh.vertices.size());
+			glUseProgram(shaderProgram);
+		}
 
 		glfwSwapBuffers();
+
+		processInput();
 	} while (glfwGetKey(GLFW_KEY_ESC) != GLFW_PRESS && glfwGetWindowParam(GLFW_OPENED));
 }
