@@ -7,7 +7,8 @@ struct Mesh {
 };
 
 
-Mesh generateIcosahedron();
+Mesh generateIcosahedron(void);
 Mesh generateSphere(int numIterations);
+Mesh generateCone(void);
 
 #endif

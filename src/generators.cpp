@@ -9,6 +9,8 @@
 
 #include <stdio.h>
 
+#define PI 3.14159265
+
 Mesh generateIcosahedron() {
 	float x = 0.525731112119133606f;
 	float z = 0.850650808352039932f;
@@ -86,5 +88,27 @@ Mesh generateSphere(int numIterations) {
 		m = subdivide(m);
 	}
 
+	return m;
+}
+
+Mesh generateCone(void) {
+	Mesh m;
+	const int numLines = 16;
+
+	m.vertices.push_back(glm::vec3(0, 1, 0));
+	for (int i = 0; i < numLines; i++) {
+		GLfloat theta = ((GLfloat) i / numLines) * 2 * PI;
+		m.vertices.push_back(glm::vec3(sin(theta) * 1, -1, cos(theta) * 1));
+
+		m.indices.push_back(0);
+		m.indices.push_back(i + 1);
+		m.indices.push_back((i == 0) ? numLines : i);
+
+		// Base triangle
+		m.indices.push_back(numLines + 1);
+		m.indices.push_back(i + 1);
+		m.indices.push_back((i == 0) ? numLines : i);
+	}
+	m.vertices.push_back(glm::vec3(0, -1, 0));
 	return m;
 }
