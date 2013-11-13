@@ -22,8 +22,8 @@
 
 #define NUM_SPHERE_ITERATIONS 3
 
-static GLuint shadedProgram, normalsProgram, shaderProgram;
-static GLuint currentProgram;
+static GLuint prgDefault, prgNormals, prgShaded;
+static GLuint prgCurrent;
 
 static glm::mat4 MVP;
 
@@ -35,87 +35,87 @@ static GLuint vaoSphere, vaoCone;
 static bool showNormals = false;
 
 GLuint createShader(GLenum type, const char* path) {
-	GLuint shader = glCreateShader(type);
+	GLuint shdShader = glCreateShader(type);
 	char* source = fileToBuffer(path);
-	glShaderSource(shader, 1, (const GLchar**)&source, NULL);
-	glCompileShader(shader);
+	glShaderSource(shdShader, 1, (const GLchar**)&source, NULL);
+	glCompileShader(shdShader);
 
 	// Check for errors
 	GLint result;
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
+	glGetShaderiv(shdShader, GL_COMPILE_STATUS, &result);
 	if (result == GL_FALSE) {
 		int length;
 		char message[1000];
-		glGetShaderInfoLog(shader, 1000, &length, reinterpret_cast<GLchar*>(&message));
+		glGetShaderInfoLog(shdShader, 1000, &length, reinterpret_cast<GLchar*>(&message));
 		if (length > 0) {
 			fprintf(stderr, "Error(s) in %s:\n%s\n--end of errors--\n", path, message);
 		}
 	}
 
-	return shader;
+	return shdShader;
 }
 
-GLuint createProgram(GLuint vertexShader, GLuint geometryShader, GLuint fragmentShader) {
-	GLuint program = glCreateProgram();
-	if (vertexShader)   glAttachShader(program, vertexShader);
-	if (geometryShader) glAttachShader(program, geometryShader);
-	if (fragmentShader) glAttachShader(program, fragmentShader);
-	glBindAttribLocation(program, 0, "vertexPosition");
-	glBindFragDataLocation(program, 0, "color");
-	glLinkProgram(program);
+GLuint createProgram(GLuint shdVertex, GLuint shdGeometry, GLuint shdFragment) {
+	GLuint prgProgram = glCreateProgram();
+	if (shdVertex)   glAttachShader(prgProgram, shdVertex);
+	if (shdGeometry) glAttachShader(prgProgram, shdGeometry);
+	if (shdFragment) glAttachShader(prgProgram, shdFragment);
+	glBindAttribLocation(prgProgram, 0, "vertexPosition");
+	glBindFragDataLocation(prgProgram, 0, "color");
+	glLinkProgram(prgProgram);
 
 	// Check for errors
 	GLint result;
-	glGetProgramiv(program, GL_LINK_STATUS, &result);
+	glGetProgramiv(prgProgram, GL_LINK_STATUS, &result);
 	if (result == GL_FALSE) {
 		int length;
 		char message[1000];
-		glGetProgramInfoLog(program, 1000, &length, reinterpret_cast<GLchar*>(&message));
+		glGetProgramInfoLog(prgProgram, 1000, &length, reinterpret_cast<GLchar*>(&message));
 		if (length > 0) {
 			fprintf(stderr, "Error(s) in shader program:\n%s\n--end of errors--\n", message);
 		}
 	}
 
-	return program;
+	return prgProgram;
 }
 
 // Setup methods //
 
 void setupShaders(void) {
 	// Standard program
-	GLuint vertexShader   = createShader(GL_VERTEX_SHADER, "shaders/vertex.glsl");
-	GLuint fragmentShader = createShader(GL_FRAGMENT_SHADER, "shaders/fragment.glsl");
+	GLuint shdVertex   = createShader(GL_VERTEX_SHADER,   "shaders/vertex.glsl");
+	GLuint shdFragment = createShader(GL_FRAGMENT_SHADER, "shaders/fragment.glsl");
 
-	shaderProgram = createProgram(vertexShader, 0, fragmentShader);
+	prgDefault = createProgram(shdVertex, 0, shdFragment);
 
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
+	glDeleteShader(shdVertex);
+	glDeleteShader(shdFragment);
 
 	// Normals program
-	GLuint normalVertexShader   = createShader(GL_VERTEX_SHADER, "shaders/normals/vertex.glsl");
-	GLuint geometryShader       = createShader(GL_GEOMETRY_SHADER, "shaders/normals/geometry.glsl");
-	GLuint normalFragmentShader = createShader(GL_FRAGMENT_SHADER, "shaders/normals/fragment.glsl");
+	GLuint shdNormalVertex   = createShader(GL_VERTEX_SHADER,   "shaders/normals/vertex.glsl");
+	GLuint shdNormalGeometry = createShader(GL_GEOMETRY_SHADER, "shaders/normals/geometry.glsl");
+	GLuint shdNormalFragment = createShader(GL_FRAGMENT_SHADER, "shaders/normals/fragment.glsl");
 
-	normalsProgram = createProgram(normalVertexShader, geometryShader, normalFragmentShader);
+	prgNormals = createProgram(shdNormalVertex, shdNormalGeometry, shdNormalFragment);
 
-	glDeleteShader(geometryShader);
-	glDeleteShader(normalVertexShader);
-	glDeleteShader(normalFragmentShader);
+	glDeleteShader(shdNormalGeometry);
+	glDeleteShader(shdNormalVertex);
+	glDeleteShader(shdNormalFragment);
 
 	// Shaded program
-	GLuint shdShadedVertex   = createShader(GL_VERTEX_SHADER, "shaders/shaded/vertex.glsl");
+	GLuint shdShadedVertex   = createShader(GL_VERTEX_SHADER,   "shaders/shaded/vertex.glsl");
 	GLuint shdShadedFragment = createShader(GL_FRAGMENT_SHADER, "shaders/shaded/fragment.glsl");
 
-	shadedProgram = createProgram(shdShadedVertex, 0, shdShadedFragment);
+	prgShaded = createProgram(shdShadedVertex, 0, shdShadedFragment);
 
-	GLuint uniMaterialColor = glGetUniformLocation(shadedProgram, "materialColor");
-	//GLuint uniAmbientColor  = glGetUniformLocation(shadedProgram, "ambientColor");
-	GLuint uniLightColor    = glGetUniformLocation(shadedProgram, "lightColor");
-	GLuint uniLightVector   = glGetUniformLocation(shadedProgram, "lightVector");
-	glProgramUniform3f(shadedProgram, uniMaterialColor, 0.2f, 0.5f, 0.2f);
-	//glProgramUniform3f(shadedProgram, uniAmbientColor,  0.7f, 0.7f, 0.7f);
-	glProgramUniform3f(shadedProgram, uniLightColor,    1.0f, 1.0f, 1.0f);
-	glProgramUniform3f(shadedProgram, uniLightVector,   3.0f, 3.0f, 3.0f);
+	GLuint uniMaterialColor = glGetUniformLocation(prgShaded, "materialColor");
+	//GLuint uniAmbientColor  = glGetUniformLocation(prgShaded, "ambientColor");
+	GLuint uniLightColor    = glGetUniformLocation(prgShaded, "lightColor");
+	GLuint uniLightVector   = glGetUniformLocation(prgShaded, "lightVector");
+	glProgramUniform3f(prgShaded, uniMaterialColor, 0.2f, 0.5f, 0.2f);
+	//glProgramUniform3f(prgShaded, uniAmbientColor,  0.7f, 0.7f, 0.7f);
+	glProgramUniform3f(prgShaded, uniLightColor,    1.0f, 1.0f, 1.0f);
+	glProgramUniform3f(prgShaded, uniLightVector,   3.0f, 3.0f, 3.0f);
 	// TODO: put these values in a common location
 
 	glDeleteShader(shdShadedVertex);
@@ -124,14 +124,14 @@ void setupShaders(void) {
 
 GLuint createVAO(const Mesh &mesh) {
 	// Create a VAO
-	GLuint vertexArray;
-	glGenVertexArrays(1, &vertexArray);
-	glBindVertexArray(vertexArray);
+	GLuint vaoVAO;
+	glGenVertexArrays(1, &vaoVAO);
+	glBindVertexArray(vaoVAO);
 
 	// Vertex VBO
-	GLuint vertexBuffer;
-	glGenBuffers(1, &vertexBuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+	GLuint vboVertex;
+	glGenBuffers(1, &vboVertex);
+	glBindBuffer(GL_ARRAY_BUFFER, vboVertex);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.vertices.size(), mesh.vertices.data(), GL_STATIC_DRAW);
 
 	// Set attributes
@@ -139,12 +139,12 @@ GLuint createVAO(const Mesh &mesh) {
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
 	// Indices VBO
-	GLuint indicesBuffer;
-	glGenBuffers(1, &indicesBuffer);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer);
+	GLuint vboIndices;
+	glGenBuffers(1, &vboIndices);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndices);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * mesh.indices.size(), mesh.indices.data(), GL_STATIC_DRAW);
 
-	return vertexArray;
+	return vaoVAO;
 }
 
 void setupGeometry(void) {
@@ -161,16 +161,16 @@ void setupMVP(void) {
 	glm::mat4 MVP        = projection * view * model;
 
 	// TODO: move this
-	glUseProgram(shaderProgram);
-	GLuint matrixID = glGetUniformLocation(shaderProgram, "MVP");
+	glUseProgram(prgDefault);
+	GLuint matrixID = glGetUniformLocation(prgDefault, "MVP");
 	glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
 
-	glUseProgram(normalsProgram);
-	matrixID = glGetUniformLocation(normalsProgram, "MVP");
+	glUseProgram(prgNormals);
+	matrixID = glGetUniformLocation(prgNormals, "MVP");
 	glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
 
-	glUseProgram(shadedProgram);
-	matrixID = glGetUniformLocation(shaderProgram, "MVP");
+	glUseProgram(prgShaded);
+	matrixID = glGetUniformLocation(prgDefault, "MVP");
 	glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
 }
 
@@ -181,7 +181,7 @@ void sceneA(void) {
 	glBindVertexArray(vaoSphere);
 	mesh = &sphere;
 	showNormals = false;
-	currentProgram = shaderProgram;
+	prgCurrent = prgDefault;
 }
 
 void sceneB(void) {
@@ -189,7 +189,7 @@ void sceneB(void) {
 	glBindVertexArray(vaoCone);
 	mesh = &cone;
 	showNormals = false;
-	currentProgram = shaderProgram;
+	prgCurrent = prgDefault;
 }
 
 void sceneC(void) {
@@ -197,7 +197,7 @@ void sceneC(void) {
 	glBindVertexArray(vaoSphere);
 	mesh = &sphere;
 	showNormals = true;
-	currentProgram = shaderProgram;
+	prgCurrent = prgDefault;
 }
 
 void sceneD(void) {
@@ -205,7 +205,7 @@ void sceneD(void) {
 	glBindVertexArray(vaoSphere);
 	mesh = &sphere;
 	showNormals = false;
-	currentProgram = shadedProgram;
+	prgCurrent = prgShaded;
 }
 
 void processInput(void) {
@@ -257,12 +257,12 @@ int main(void) {
 	// Main loop
 	printf("Entering main loop.\n");
 	do {
-		glUseProgram(currentProgram);
+		glUseProgram(prgCurrent);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, NULL);
 
 		if (showNormals) {
-			glUseProgram(normalsProgram);
+			glUseProgram(prgNormals);
 			glDrawArrays(GL_POINTS, 0, mesh->vertices.size());
 		}
 
