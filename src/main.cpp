@@ -22,7 +22,9 @@
 
 #define NUM_SPHERE_ITERATIONS 3
 
-static GLuint shaderProgram, normalsProgram;
+static GLuint shadedProgram, normalsProgram, shaderProgram;
+static GLuint currentProgram;
+
 static glm::mat4 MVP;
 
 static Mesh sphere, cone;
@@ -59,6 +61,7 @@ GLuint createProgram(GLuint vertexShader, GLuint geometryShader, GLuint fragment
 	if (geometryShader) glAttachShader(program, geometryShader);
 	if (fragmentShader) glAttachShader(program, fragmentShader);
 	glBindAttribLocation(program, 0, "vertexPosition");
+	glBindFragDataLocation(program, 0, "color");
 	glLinkProgram(program);
 
 	// Check for errors
@@ -98,6 +101,25 @@ void setupShaders(void) {
 	glDeleteShader(geometryShader);
 	glDeleteShader(normalVertexShader);
 	glDeleteShader(normalFragmentShader);
+
+	// Shaded program
+	GLuint shdShadedVertex   = createShader(GL_VERTEX_SHADER, "shaders/shaded/vertex.glsl");
+	GLuint shdShadedFragment = createShader(GL_FRAGMENT_SHADER, "shaders/shaded/fragment.glsl");
+
+	shadedProgram = createProgram(shdShadedVertex, 0, shdShadedFragment);
+
+	GLuint uniMaterialColor = glGetUniformLocation(shadedProgram, "materialColor");
+	//GLuint uniAmbientColor  = glGetUniformLocation(shadedProgram, "ambientColor");
+	GLuint uniLightColor    = glGetUniformLocation(shadedProgram, "lightColor");
+	GLuint uniLightVector   = glGetUniformLocation(shadedProgram, "lightVector");
+	glProgramUniform3f(shadedProgram, uniMaterialColor, 0.2f, 0.5f, 0.2f);
+	//glProgramUniform3f(shadedProgram, uniAmbientColor,  0.7f, 0.7f, 0.7f);
+	glProgramUniform3f(shadedProgram, uniLightColor,    1.0f, 1.0f, 1.0f);
+	glProgramUniform3f(shadedProgram, uniLightVector,   3.0f, 3.0f, 3.0f);
+	// TODO: put these values in a common location
+
+	glDeleteShader(shdShadedVertex);
+	glDeleteShader(shdShadedFragment);
 }
 
 GLuint createVAO(const Mesh &mesh) {
@@ -138,6 +160,7 @@ void setupMVP(void) {
 	glm::mat4 model      = glm::mat4(1.0f);
 	glm::mat4 MVP        = projection * view * model;
 
+	// TODO: move this
 	glUseProgram(shaderProgram);
 	GLuint matrixID = glGetUniformLocation(shaderProgram, "MVP");
 	glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
@@ -145,26 +168,44 @@ void setupMVP(void) {
 	glUseProgram(normalsProgram);
 	matrixID = glGetUniformLocation(normalsProgram, "MVP");
 	glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
+
+	glUseProgram(shadedProgram);
+	matrixID = glGetUniformLocation(shaderProgram, "MVP");
+	glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
 }
 
 // Scenes //
 
 void sceneA(void) {
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glBindVertexArray(vaoSphere);
 	mesh = &sphere;
 	showNormals = false;
+	currentProgram = shaderProgram;
 }
 
 void sceneB(void) {
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glBindVertexArray(vaoCone);
 	mesh = &cone;
 	showNormals = false;
+	currentProgram = shaderProgram;
 }
 
 void sceneC(void) {
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glBindVertexArray(vaoSphere);
 	mesh = &sphere;
 	showNormals = true;
+	currentProgram = shaderProgram;
+}
+
+void sceneD(void) {
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glBindVertexArray(vaoSphere);
+	mesh = &sphere;
+	showNormals = false;
+	currentProgram = shadedProgram;
 }
 
 void processInput(void) {
@@ -175,6 +216,7 @@ void processInput(void) {
 	} else if (glfwGetKey(static_cast<int>('C'))) {  // Wire-frame sphere with normals
 		sceneC();
 	} else if (glfwGetKey(static_cast<int>('D'))) {  // Shaded sphere
+		sceneD();
 	} else if (glfwGetKey(static_cast<int>('E'))) {  // Animation
 	} else if (glfwGetKey(static_cast<int>('F'))) {  // Textured object
 	}
@@ -206,22 +248,22 @@ int main(void) {
 	setupMVP();
 	checkForError("After MVP setup");
 
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // Display wireframes
 	sceneA();
 
 	// Main loop
 	printf("Entering main loop.\n");
-	glUseProgram(shaderProgram);
 	do {
+		glUseProgram(currentProgram);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, NULL);
 
 		if (showNormals) {
 			glUseProgram(normalsProgram);
 			glDrawArrays(GL_POINTS, 0, mesh->vertices.size());
-			glUseProgram(shaderProgram);
 		}
 
 		glfwSwapBuffers();
