@@ -22,15 +22,19 @@
 
 #define NUM_SPHERE_ITERATIONS 3
 
+struct DisplayObject {
+	int numVertices;
+	int numIndices;
+	GLuint vao;
+};
+
 static GLuint prgDefault, prgNormals, prgShaded;
 static GLuint prgCurrent;
 
 static glm::mat4 MVP;
 
-static Mesh sphere, cone;
-static Mesh *mesh;
-
-static GLuint vaoSphere, vaoCone;
+static DisplayObject sphere, cone, icosahedron, lowSphere;
+static DisplayObject *object;
 
 static bool showNormals = false;
 
@@ -127,7 +131,7 @@ void setupShaders(void) {
 	glDeleteShader(shdShadedFragment);
 }
 
-GLuint createVAO(const Mesh &mesh) {
+DisplayObject createDisplayObject(const Mesh &mesh) {
 	// Create a VAO
 	GLuint vaoVAO;
 	glGenVertexArrays(1, &vaoVAO);
@@ -149,18 +153,19 @@ GLuint createVAO(const Mesh &mesh) {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndices);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * mesh.indices.size(), mesh.indices.data(), GL_STATIC_DRAW);
 
-	return vaoVAO;
+	// DisplayObject
+	DisplayObject obj;
+	obj.vao = vaoVAO;
+	obj.numVertices = mesh.vertices.size();
+	obj.numIndices  = mesh.indices.size();
+	return obj;
 }
 
 void setupGeometry(void) {
-	sphere      = generateSphere(NUM_SPHERE_ITERATIONS);
-	cone        = generateCone();
-	icosahedron = generateIcosahedron();
-	lowSphere   = generateSphere(1);
-	vaoSphere      = createVAO(sphere);
-	vaoCone        = createVAO(cone);
-	vaoIcosahedron = createVAO(icosahedron);
-	vaoLowSphere   = createVAO(lowSphere);
+	sphere      = createDisplayObject(generateSphere(NUM_SPHERE_ITERATIONS));
+	cone        = createDisplayObject(generateCone());
+	icosahedron = createDisplayObject(generateIcosahedron());
+	lowSphere   = createDisplayObject(generateSphere(1));
 }
 
 void setupMVP(void) {
@@ -172,34 +177,35 @@ void setupMVP(void) {
 
 // Scenes //
 
+void setDisplayObject(DisplayObject* obj) {
+	object = obj;
+	glBindVertexArray(obj->vao);
+}
+
 void sceneA(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glBindVertexArray(vaoSphere);
-	mesh = &sphere;
+	setDisplayObject(&sphere);
 	showNormals = false;
 	prgCurrent = prgDefault;
 }
 
 void sceneB(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glBindVertexArray(vaoCone);
-	mesh = &cone;
+	setDisplayObject(&cone);
 	showNormals = false;
 	prgCurrent = prgDefault;
 }
 
 void sceneC(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glBindVertexArray(vaoSphere);
-	mesh = &sphere;
+	setDisplayObject(&sphere);
 	showNormals = true;
 	prgCurrent = prgDefault;
 }
 
 void sceneD(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	glBindVertexArray(vaoSphere);
-	mesh = &sphere;
+	setDisplayObject(&sphere);
 	showNormals = false;
 	prgCurrent = prgShaded;
 }
@@ -255,11 +261,11 @@ int main(void) {
 	do {
 		glUseProgram(prgCurrent);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT, NULL);
+		glDrawElements(GL_TRIANGLES, object->numIndices, GL_UNSIGNED_INT, NULL);
 
 		if (showNormals) {
 			glUseProgram(prgNormals);
-			glDrawArrays(GL_POINTS, 0, mesh->vertices.size());
+			glDrawArrays(GL_POINTS, 0, object->numVertices);
 		}
 
 		glfwSwapBuffers();
