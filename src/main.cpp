@@ -64,6 +64,11 @@ GLuint createProgram(GLuint shdVertex, GLuint shdGeometry, GLuint shdFragment) {
 	glBindFragDataLocation(prgProgram, 0, "color");
 	glLinkProgram(prgProgram);
 
+	// Set the MVP matrix
+	glUseProgram(prgProgram);
+	GLuint uniMVP = glGetUniformLocation(prgProgram, "MVP");
+	glUniformMatrix4fv(uniMVP, 1, GL_FALSE, &MVP[0][0]);
+
 	// Check for errors
 	GLint result;
 	glGetProgramiv(prgProgram, GL_LINK_STATUS, &result);
@@ -148,30 +153,21 @@ GLuint createVAO(const Mesh &mesh) {
 }
 
 void setupGeometry(void) {
-	sphere = generateSphere(NUM_SPHERE_ITERATIONS);
-	cone   = generateCone();
-	vaoSphere = createVAO(sphere);
-	vaoCone   = createVAO(cone);
+	sphere      = generateSphere(NUM_SPHERE_ITERATIONS);
+	cone        = generateCone();
+	icosahedron = generateIcosahedron();
+	lowSphere   = generateSphere(1);
+	vaoSphere      = createVAO(sphere);
+	vaoCone        = createVAO(cone);
+	vaoIcosahedron = createVAO(icosahedron);
+	vaoLowSphere   = createVAO(lowSphere);
 }
 
 void setupMVP(void) {
 	glm::mat4 projection = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
 	glm::mat4 view       = glm::lookAt(glm::vec3(3,3,3), glm::vec3(0,0,0), glm::vec3(0,1,0));
 	glm::mat4 model      = glm::mat4(1.0f);
-	glm::mat4 MVP        = projection * view * model;
-
-	// TODO: move this
-	glUseProgram(prgDefault);
-	GLuint matrixID = glGetUniformLocation(prgDefault, "MVP");
-	glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
-
-	glUseProgram(prgNormals);
-	matrixID = glGetUniformLocation(prgNormals, "MVP");
-	glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
-
-	glUseProgram(prgShaded);
-	matrixID = glGetUniformLocation(prgDefault, "MVP");
-	glUniformMatrix4fv(matrixID, 1, GL_FALSE, &MVP[0][0]);
+	MVP = projection * view * model;
 }
 
 // Scenes //
@@ -241,12 +237,12 @@ int main(void) {
 
 	glfwSetWindowTitle(WINDOW_TITLE);
 
+	setupMVP();
+	checkForError("After MVP setup");
 	setupShaders();
 	checkForError("After shader setup");
 	setupGeometry();
 	checkForError("After geometry setup");
-	setupMVP();
-	checkForError("After MVP setup");
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
