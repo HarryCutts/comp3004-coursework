@@ -261,7 +261,7 @@ void sceneE(void) {
 	prgCurrent = prgDefault;
 }
 
-void processInput(void) {
+bool processInput(void) {
 	if (glfwGetKey(static_cast<int>('A'))) {         // Wire-frame sphere
 		sceneA();
 	} else if (glfwGetKey(static_cast<int>('B'))) {  // Wire-frame cone
@@ -275,7 +275,11 @@ void processInput(void) {
 	} else if (glfwGetKey(static_cast<int>('F'))) {  // Textured object
 	} else if (glfwGetKey(static_cast<int>('R'))) {  // Toggle rotation
 		rotating = !rotating;
+	} else if (glfwGetKey(GLFW_KEY_ESC) || glfwGetKey(static_cast<int>('Q'))) {
+		return true;
 	}
+
+	return false;
 }
 
 
@@ -311,6 +315,7 @@ int main(void) {
 	// Main loop
 	printf("Entering main loop.\n");
 	double lastTime = glfwGetTime();
+	bool shouldExit = false;
 	do {
 		glUseProgram(prgCurrent);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -326,7 +331,7 @@ int main(void) {
 		glfwSwapBuffers();
 		checkForError("main loop");
 
-		processInput();
+		shouldExit = processInput();
 
 		if (rotating) {
 			double currentTime = glfwGetTime();
@@ -335,5 +340,5 @@ int main(void) {
 			setupMVPs(currentRotation);
 			lastTime = currentTime;
 		}
-	} while (glfwGetKey(GLFW_KEY_ESC) != GLFW_PRESS && glfwGetWindowParam(GLFW_OPENED));
+	} while (!shouldExit && glfwGetWindowParam(GLFW_OPENED));
 }
