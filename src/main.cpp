@@ -16,27 +16,33 @@
 
 #define PI 3.14159265
 
-#define WINDOW_WIDTH  640
-#define WINDOW_HEIGHT 480
+#define WINDOW_WIDTH  800
+#define WINDOW_HEIGHT 600
 #define WINDOW_TITLE  "Graphics coursework 1, Harry Cutts"
 
 #define NUM_SPHERE_ITERATIONS 3
+
+#define ROTATION_SPEED -8
 
 struct DisplayObject {
 	int numVertices;
 	int numIndices;
 	GLuint vao;
+	GLfloat *mvp;
 };
 
 static GLuint prgDefault, prgNormals, prgShaded;
 static GLuint prgCurrent;
 
-static glm::mat4 MVP;
+static glm::mat4 MVP, icosahedronMVP, lowSphereMVP, highSphereMVP, coneForEMVP;
 
-static DisplayObject sphere, cone, icosahedron, lowSphere;
-static DisplayObject *object;
+static DisplayObject sphere, cone, icosahedron, lowSphere, highSphere, coneForE;
+static std::vector<DisplayObject*> objects;
 
 static bool showNormals = false;
+
+static bool rotating = false;
+static GLfloat currentRotation = 0.0f;
 
 GLuint createShader(GLenum type, const char* path) {
 	GLuint shdShader = glCreateShader(type);
@@ -67,11 +73,6 @@ GLuint createProgram(GLuint shdVertex, GLuint shdGeometry, GLuint shdFragment) {
 	glBindAttribLocation(prgProgram, 0, "vertexPosition");
 	glBindFragDataLocation(prgProgram, 0, "color");
 	glLinkProgram(prgProgram);
-
-	// Set the MVP matrix
-	glUseProgram(prgProgram);
-	GLuint uniMVP = glGetUniformLocation(prgProgram, "MVP");
-	glUniformMatrix4fv(uniMVP, 1, GL_FALSE, &MVP[0][0]);
 
 	// Check for errors
 	GLint result;
@@ -106,6 +107,9 @@ void setupShaders(void) {
 	GLuint shdNormalFragment = createShader(GL_FRAGMENT_SHADER, "shaders/normals/fragment.glsl");
 
 	prgNormals = createProgram(shdNormalVertex, shdNormalGeometry, shdNormalFragment);
+	glUseProgram(prgNormals);
+	GLuint uniMVP = glGetUniformLocation(prgNormals, "MVP");
+	glUniformMatrix4fv(uniMVP, 1, GL_FALSE, &MVP[0][0]);
 
 	glDeleteShader(shdNormalGeometry);
 	glDeleteShader(shdNormalVertex);
@@ -131,7 +135,7 @@ void setupShaders(void) {
 	glDeleteShader(shdShadedFragment);
 }
 
-DisplayObject createDisplayObject(const Mesh &mesh) {
+DisplayObject createDisplayObject(const Mesh &mesh, GLfloat *mvp) {
 	// Create a VAO
 	GLuint vaoVAO;
 	glGenVertexArrays(1, &vaoVAO);
@@ -158,34 +162,63 @@ DisplayObject createDisplayObject(const Mesh &mesh) {
 	obj.vao = vaoVAO;
 	obj.numVertices = mesh.vertices.size();
 	obj.numIndices  = mesh.indices.size();
+	obj.mvp = mvp;
 	return obj;
 }
 
-void setupGeometry(void) {
-	sphere      = createDisplayObject(generateSphere(NUM_SPHERE_ITERATIONS));
-	cone        = createDisplayObject(generateCone());
-	icosahedron = createDisplayObject(generateIcosahedron());
-	lowSphere   = createDisplayObject(generateSphere(1));
-}
-
-void setupMVP(void) {
+glm::mat4 createMVP(GLfloat x, GLfloat y, GLfloat z, GLfloat theta) {
 	glm::mat4 projection = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
 	glm::mat4 view       = glm::lookAt(glm::vec3(3,3,3), glm::vec3(0,0,0), glm::vec3(0,1,0));
-	glm::mat4 model      = glm::mat4(1.0f);
-	MVP = projection * view * model;
+	glm::mat4 rotateY    = glm::rotate(glm::mat4(1.), theta, glm::vec3(0,1,0));
+	glm::mat4 translate  = glm::translate(glm::mat4(1.), glm::vec3(x, y, z));
+	GLfloat zRotation = -theta * 1.3;
+	glm::mat4 rotateZ = glm::rotate(glm::mat4(1.), zRotation, glm::vec3(0,0,1));
+	glm::mat4 model = rotateY * translate * rotateZ;
+	return projection * view * model;
+}
+
+void setupMVPs(GLfloat rotation) {
+	MVP = createMVP(0.0f, 0.0f, 0.0f, rotation);
+	icosahedronMVP = createMVP(-1.3f, 0.0f,  1.3f, rotation);
+	lowSphereMVP   = createMVP( 1.3f, 0.0f,  1.3f, rotation);
+	highSphereMVP  = createMVP( 1.3f, 0.0f, -1.3f, rotation);
+	coneForEMVP    = createMVP(-1.3f, 0.0f, -1.3f, rotation);
+}
+
+void setupGeometry(void) {
+	setupMVPs(currentRotation);
+
+	Mesh sphereMesh = generateSphere(NUM_SPHERE_ITERATIONS);
+	Mesh coneMesh   = generateCone();
+	sphere      = createDisplayObject(sphereMesh, &MVP[0][0]);
+	cone        = createDisplayObject(coneMesh, &MVP[0][0]);
+
+	icosahedron = createDisplayObject(generateIcosahedron(), &icosahedronMVP[0][0]);
+	lowSphere   = createDisplayObject(generateSphere(1), &lowSphereMVP[0][0]);
+	highSphere  = createDisplayObject(sphereMesh, &highSphereMVP[0][0]);
+	coneForE    = createDisplayObject(coneMesh, &coneForEMVP[0][0]);
 }
 
 // Scenes //
 
 void setDisplayObject(DisplayObject* obj) {
-	object = obj;
+	objects.clear();
+	objects.push_back(obj);
+}
+
+void drawObject(DisplayObject* obj) {
 	glBindVertexArray(obj->vao);
+	GLuint uniMVP = glGetUniformLocation(prgCurrent, "MVP");
+	glUniformMatrix4fv(uniMVP, 1, GL_FALSE, obj->mvp);
+	glDrawElements(GL_TRIANGLES, obj->numIndices, GL_UNSIGNED_INT, NULL);
 }
 
 void sceneA(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	setDisplayObject(&sphere);
 	showNormals = false;
+	rotating = false;
+	currentRotation = 0;
 	prgCurrent = prgDefault;
 }
 
@@ -193,6 +226,8 @@ void sceneB(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	setDisplayObject(&cone);
 	showNormals = false;
+	rotating = false;
+	currentRotation = 0;
 	prgCurrent = prgDefault;
 }
 
@@ -200,6 +235,8 @@ void sceneC(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	setDisplayObject(&sphere);
 	showNormals = true;
+	rotating = false;
+	currentRotation = 0;
 	prgCurrent = prgDefault;
 }
 
@@ -207,7 +244,21 @@ void sceneD(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	setDisplayObject(&sphere);
 	showNormals = false;
+	rotating = false;
+	currentRotation = 0;
 	prgCurrent = prgShaded;
+}
+
+void sceneE(void) {
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	objects.clear();
+	objects.push_back(&icosahedron);
+	objects.push_back(&lowSphere);
+	objects.push_back(&highSphere);
+	objects.push_back(&coneForE);
+	showNormals = false;
+	rotating = true;
+	prgCurrent = prgDefault;
 }
 
 void processInput(void) {
@@ -220,7 +271,10 @@ void processInput(void) {
 	} else if (glfwGetKey(static_cast<int>('D'))) {  // Shaded sphere
 		sceneD();
 	} else if (glfwGetKey(static_cast<int>('E'))) {  // Animation
+		sceneE();
 	} else if (glfwGetKey(static_cast<int>('F'))) {  // Textured object
+	} else if (glfwGetKey(static_cast<int>('R'))) {  // Toggle rotation
+		rotating = !rotating;
 	}
 }
 
@@ -243,12 +297,10 @@ int main(void) {
 
 	glfwSetWindowTitle(WINDOW_TITLE);
 
-	setupMVP();
-	checkForError("After MVP setup");
-	setupShaders();
-	checkForError("After shader setup");
 	setupGeometry();
 	checkForError("After geometry setup");
+	setupShaders();
+	checkForError("After shader setup");
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
@@ -258,19 +310,30 @@ int main(void) {
 
 	// Main loop
 	printf("Entering main loop.\n");
+	double lastTime = glfwGetTime();
 	do {
 		glUseProgram(prgCurrent);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glDrawElements(GL_TRIANGLES, object->numIndices, GL_UNSIGNED_INT, NULL);
+		for (unsigned int i = 0; i < objects.size(); i++) {
+			drawObject(objects[i]);
+		}
 
 		if (showNormals) {
 			glUseProgram(prgNormals);
-			glDrawArrays(GL_POINTS, 0, object->numVertices);
+			glDrawArrays(GL_POINTS, 0, objects[0]->numVertices);
 		}
 
 		glfwSwapBuffers();
 		checkForError("main loop");
 
 		processInput();
+
+		if (rotating) {
+			double currentTime = glfwGetTime();
+			double timePassed = currentTime - lastTime;
+			currentRotation += ROTATION_SPEED * timePassed;
+			setupMVPs(currentRotation);
+			lastTime = currentTime;
+		}
 	} while (glfwGetKey(GLFW_KEY_ESC) != GLFW_PRESS && glfwGetWindowParam(GLFW_OPENED));
 }
