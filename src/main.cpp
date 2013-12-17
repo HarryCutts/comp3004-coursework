@@ -215,6 +215,7 @@ void drawObject(DisplayObject* obj) {
 
 void sceneA(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glClearColor(0.059f, 0.537f, 0.698f, 0.0f);
 	setDisplayObject(&sphere);
 	showNormals = false;
 	rotating = false;
@@ -224,6 +225,7 @@ void sceneA(void) {
 
 void sceneB(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glClearColor(0.239f, 0.024f, 0.698f, 0.0f);
 	setDisplayObject(&cone);
 	showNormals = false;
 	rotating = false;
@@ -233,6 +235,7 @@ void sceneB(void) {
 
 void sceneC(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glClearColor(0.357f, 0.149f, 0.800f, 0.0f);
 	setDisplayObject(&sphere);
 	showNormals = true;
 	rotating = false;
@@ -242,6 +245,7 @@ void sceneC(void) {
 
 void sceneD(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glClearColor(0.341f, 0.235f, 1.000f, 0.0f);
 	setDisplayObject(&sphere);
 	showNormals = false;
 	rotating = false;
@@ -251,6 +255,7 @@ void sceneD(void) {
 
 void sceneE(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glClearColor(0.239f, 0.024f, 0.698f, 0.0f);
 	objects.clear();
 	objects.push_back(&icosahedron);
 	objects.push_back(&lowSphere);
@@ -308,7 +313,6 @@ int main(void) {
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
-	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
 	sceneA();
 
