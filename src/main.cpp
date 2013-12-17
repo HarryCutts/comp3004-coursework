@@ -289,7 +289,10 @@ bool processInput(void) {
 
 
 int main(void) {
-	if (!glfwInit()) exit(EXIT_FAILURE);
+	if (!glfwInit()) {
+		fprintf(stderr, "Could not initialise GLFW. Terminating.\n");
+		exit(EXIT_FAILURE);
+	}
 
 	// Set up
 	glfwOpenWindowHint(GLFW_OPENGL_VERSION_MAJOR, 3);
@@ -297,6 +300,7 @@ int main(void) {
 
 	if (!glfwOpenWindow(WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, 0, 0, 0, 0, GLFW_WINDOW)) {
 		glfwTerminate();
+		fprintf(stderr, "Could not open window. Terminating.\n");
 		exit(EXIT_FAILURE);
 	}
 
