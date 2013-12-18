@@ -18,7 +18,7 @@
 
 #define WINDOW_WIDTH  800
 #define WINDOW_HEIGHT 600
-#define WINDOW_TITLE  "Graphics coursework 1, Harry Cutts"
+#define WINDOW_TITLE  "Graphics coursework 3, Harry Cutts"
 
 #define NUM_SPHERE_ITERATIONS 3
 
