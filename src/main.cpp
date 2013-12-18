@@ -168,7 +168,7 @@ DisplayObject createDisplayObject(const Mesh &mesh, GLfloat *mvp) {
 
 glm::mat4 createMVP(GLfloat x, GLfloat y, GLfloat z, GLfloat theta) {
 	glm::mat4 projection = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
-	glm::mat4 view       = glm::lookAt(glm::vec3(3,3,3), glm::vec3(0,0,0), glm::vec3(0,1,0));
+	glm::mat4 view       = glm::lookAt(glm::vec3(5,5,5), glm::vec3(0,0,0), glm::vec3(0,1,0));
 	glm::mat4 rotateY    = glm::rotate(glm::mat4(1.), theta, glm::vec3(0,1,0));
 	glm::mat4 translate  = glm::translate(glm::mat4(1.), glm::vec3(x, y, z));
 	GLfloat zRotation = -theta * 1.3;
@@ -188,7 +188,7 @@ void setupMVPs(GLfloat rotation) {
 void setupGeometry(void) {
 	setupMVPs(currentRotation);
 
-	Mesh sphereMesh = generateSphere(NUM_SPHERE_ITERATIONS);
+	Mesh sphereMesh = loadOBJ("blender-test.obj");//generateSphere(NUM_SPHERE_ITERATIONS);
 	Mesh coneMesh   = generateCone();
 	sphere      = createDisplayObject(sphereMesh, &MVP[0][0]);
 	cone        = createDisplayObject(coneMesh, &MVP[0][0]);

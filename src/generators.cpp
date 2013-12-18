@@ -5,6 +5,8 @@
 #include <GL/glfw.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "glm.h" // Nate Robins' GLM, NOT the maths library
+
 #include "generators.h"
 
 #include <stdio.h>
@@ -110,5 +112,29 @@ Mesh generateCone(void) {
 		m.indices.push_back((i == 0) ? numLines : i);
 	}
 	m.vertices.push_back(glm::vec3(0, -1, 0));
+	return m;
+}
+
+Mesh loadOBJ(const char* path) {
+	GLMmodel* model = glmReadOBJ((char*)path);
+	Mesh m;
+
+	// Turn the sets of three GLfloats into glm::vec3s
+	GLuint numvertices = model->numvertices;
+	GLfloat* vertices  = model->vertices;
+	for (GLuint i = 0; i < numvertices * 3; i += 3) {
+		m.vertices.push_back(glm::vec3(vertices[i], vertices[i+1], vertices[i+2]));
+	}
+
+	// Turn GLMtriangles into sets of three GLuints
+	GLuint numtriangles = model->numtriangles;
+	GLMtriangle* triangles = model->triangles;
+	for (GLuint i = 0; i < numtriangles; i++) {
+		GLMtriangle triangle = triangles[i];
+		m.indices.push_back(triangle.vindices[0]);
+		m.indices.push_back(triangle.vindices[1]);
+		m.indices.push_back(triangle.vindices[2]);
+	}
+
 	return m;
 }

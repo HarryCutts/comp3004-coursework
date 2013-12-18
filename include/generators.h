@@ -11,4 +11,6 @@ Mesh generateIcosahedron(void);
 Mesh generateSphere(int numIterations);
 Mesh generateCone(void);
 
+Mesh loadOBJ(const char* path);
+
 #endif
