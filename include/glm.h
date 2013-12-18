@@ -11,6 +11,7 @@
 
  */
 
+/*
 
 #include <SDL.h>
 
@@ -20,6 +21,8 @@
 #include <GL/glee.h>
 
 #include <SDL_opengl.h>
+*/
+#include <GL/glfw.h>
 
 
 #ifndef M_PI
