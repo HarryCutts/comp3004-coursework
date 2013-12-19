@@ -115,26 +115,42 @@ Mesh generateCone(void) {
 	return m;
 }
 
+/** Turns sets of three GLfloats into glm::vec3s and adds them to the given std::vector. */
+static void tripletsToVec3s(GLfloat* data, GLuint numTriplets, std::vector<glm::vec3> &vector) {
+	for (GLuint i = 0; i < numTriplets * 3; i += 3) {
+		vector.push_back(glm::vec3(data[i], data[i+1], data[i+2]));
+	}
+}
+
 Mesh loadOBJ(const char* path) {
 	GLMmodel* model = glmReadOBJ((char*)path);
 	Mesh m;
 
-	// Turn the sets of three GLfloats into glm::vec3s
-	GLuint numvertices = model->numvertices;
-	GLfloat* vertices  = model->vertices;
-	for (GLuint i = 0; i < numvertices * 3; i += 3) {
-		m.vertices.push_back(glm::vec3(vertices[i], vertices[i+1], vertices[i+2]));
-	}
+	tripletsToVec3s(model->vertices, model->numvertices, m.vertices);
+	m.normals.resize(model->numvertices);
 
-	// Turn GLMtriangles into sets of three GLuints
+	std::vector<glm::vec3> normals;
+	tripletsToVec3s(model->normals, model->numnormals, normals);
+
+	GLuint numVertices  = model->numvertices;
 	GLuint numtriangles = model->numtriangles;
 	GLMtriangle* triangles = model->triangles;
 	for (GLuint i = 0; i < numtriangles; i++) {
-		GLMtriangle triangle = triangles[i];
-		m.indices.push_back(triangle.vindices[0]);
-		m.indices.push_back(triangle.vindices[1]);
-		m.indices.push_back(triangle.vindices[2]);
-	}
+		GLMtriangle tri = triangles[i];
+		m.indices.push_back(tri.vindices[0]);
+		m.indices.push_back(tri.vindices[1]);
+		m.indices.push_back(tri.vindices[2]);
 
+		if (tri.vindices[0] < numVertices && tri.vindices[1] < numVertices && tri.vindices[2] < numVertices) {
+			m.normals[tri.vindices[0]] = normals[tri.nindices[0]];
+			m.normals[tri.vindices[1]] = normals[tri.nindices[1]];
+			m.normals[tri.vindices[2]] = normals[tri.nindices[2]];
+			// TODO: deal with points which have multiple normals
+		} else {
+			// Blender exports have an annoying invalid face at the end
+			fprintf(stderr, "WARNING: triangle %d in model %s refers to a non-existent vertex.",
+			        i, path);
+		}
+	}
 	return m;
 }

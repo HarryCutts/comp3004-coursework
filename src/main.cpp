@@ -71,6 +71,7 @@ GLuint createProgram(GLuint shdVertex, GLuint shdGeometry, GLuint shdFragment) {
 	if (shdGeometry) glAttachShader(prgProgram, shdGeometry);
 	if (shdFragment) glAttachShader(prgProgram, shdFragment);
 	glBindAttribLocation(prgProgram, 0, "vertexPosition");
+	glBindAttribLocation(prgProgram, 1, "normal");
 	glBindFragDataLocation(prgProgram, 0, "color");
 	glLinkProgram(prgProgram);
 
@@ -147,9 +148,19 @@ DisplayObject createDisplayObject(const Mesh &mesh, GLfloat *mvp) {
 	glBindBuffer(GL_ARRAY_BUFFER, vboVertex);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.vertices.size(), mesh.vertices.data(), GL_STATIC_DRAW);
 
-	// Set attributes
+	// Bind as buffer 0
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	// Normals VBO
+	GLuint vboNormals;
+	glGenBuffers(1, &vboNormals);
+	glBindBuffer(GL_ARRAY_BUFFER, vboNormals);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.normals.size(), mesh.normals.data(), GL_STATIC_DRAW);
+
+	// Bind as buffer 1
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
 	// Indices VBO
 	GLuint vboIndices;
@@ -279,7 +290,7 @@ bool processInput(void) {
 		sceneE();
 	} else if (glfwGetKey(static_cast<int>('F'))) {  // Textured object
 	} else if (glfwGetKey(static_cast<int>('R'))) {  // Toggle rotation
-		rotating = !rotating;
+		rotating = !rotating;  // TODO: distinguish between key presses
 	} else if (glfwGetKey(GLFW_KEY_ESC) || glfwGetKey(static_cast<int>('Q'))) {
 		return true;
 	}
