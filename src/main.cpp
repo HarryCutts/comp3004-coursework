@@ -22,17 +22,22 @@
 
 #define ROTATION_SPEED -8
 
+struct MVPSet {
+	glm::mat4 mvp;
+	glm::mat4 m;
+	glm::mat4 v;
+	glm::mat4 p;
+};
+
 struct DisplayObject {
 	int numVertices;
 	int numIndices;
 	GLuint vao;
-	GLfloat *mvp;
+	MVPSet mvpSet;
 };
 
 static GLuint prgDefault, prgNormals, prgShaded;
 static GLuint prgCurrent;
-
-static glm::mat4 MVP;
 
 static DisplayObject object;
 static std::vector<DisplayObject*> objects;
@@ -106,9 +111,6 @@ void setupShaders(void) {
 	GLuint shdNormalFragment = createShader(GL_FRAGMENT_SHADER, "shaders/normals/fragment.glsl");
 
 	prgNormals = createProgram(shdNormalVertex, shdNormalGeometry, shdNormalFragment);
-	glUseProgram(prgNormals);
-	GLuint uniMVP = glGetUniformLocation(prgNormals, "MVP");
-	glUniformMatrix4fv(uniMVP, 1, GL_FALSE, &MVP[0][0]);
 
 	glDeleteShader(shdNormalGeometry);
 	glDeleteShader(shdNormalVertex);
@@ -134,7 +136,7 @@ void setupShaders(void) {
 	glDeleteShader(shdShadedFragment);
 }
 
-DisplayObject createDisplayObject(const Mesh &mesh, GLfloat *mvp) {
+DisplayObject createDisplayObject(const Mesh &mesh, MVPSet mvpSet) {
 	// Create a VAO
 	GLuint vaoVAO;
 	glGenVertexArrays(1, &vaoVAO);
@@ -171,30 +173,31 @@ DisplayObject createDisplayObject(const Mesh &mesh, GLfloat *mvp) {
 	obj.vao = vaoVAO;
 	obj.numVertices = mesh.vertices.size();
 	obj.numIndices  = mesh.indices.size();
-	obj.mvp = mvp;
+	obj.mvpSet = mvpSet;
 	return obj;
 }
 
-glm::mat4 createMVP(GLfloat x, GLfloat y, GLfloat z, GLfloat theta) {
-	glm::mat4 projection = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
-	glm::mat4 view       = glm::lookAt(glm::vec3(5,5,5), glm::vec3(0,0,0), glm::vec3(0,1,0));
+MVPSet createMVP(GLfloat x, GLfloat y, GLfloat z, GLfloat theta) {
+	MVPSet set;
+
 	glm::mat4 rotateY    = glm::rotate(glm::mat4(1.), theta, glm::vec3(0,1,0));
 	glm::mat4 translate  = glm::translate(glm::mat4(1.), glm::vec3(x, y, z));
 	GLfloat zRotation = -theta * 1.3;
 	glm::mat4 rotateZ = glm::rotate(glm::mat4(1.), zRotation, glm::vec3(0,0,1));
-	glm::mat4 model = rotateY * translate * rotateZ;
-	return projection * view * model;
-}
+	set.m = translate * rotateZ * rotateY;
 
-void setupMVPs(GLfloat rotation) {
-	MVP = createMVP(0.0f, 0.0f, 0.0f, rotation);
+	set.v = glm::lookAt(glm::vec3(5,5,5), glm::vec3(0,0,0), glm::vec3(0,1,0));
+	set.p = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
+
+	set.mvp = set.p * set.v * set.m;
+	return set;
 }
 
 void setupGeometry(void) {
-	setupMVPs(currentRotation);
+	MVPSet MVP = createMVP(0.0f, 0.0f, 0.0f, currentRotation);
 
 	Mesh objectMesh = loadOBJ("blender-test.obj");
-	object      = createDisplayObject(objectMesh, &MVP[0][0]);
+	object      = createDisplayObject(objectMesh, MVP);
 }
 
 // Scenes //
@@ -206,8 +209,16 @@ void setDisplayObject(DisplayObject* obj) {
 
 void drawObject(DisplayObject* obj) {
 	glBindVertexArray(obj->vao);
-	GLuint uniMVP = glGetUniformLocation(prgCurrent, "MVP");
-	glUniformMatrix4fv(uniMVP, 1, GL_FALSE, obj->mvp);
+
+	GLuint uniMVP = glGetUniformLocation(prgCurrent, "MVP"),
+	       uniM   = glGetUniformLocation(prgCurrent, "M"),
+	       uniV   = glGetUniformLocation(prgCurrent, "V"),
+	       uniP   = glGetUniformLocation(prgCurrent, "P");
+	glUniformMatrix4fv(uniMVP, 1, GL_FALSE, &(obj->mvpSet.mvp[0][0]));
+	glUniformMatrix4fv(uniM,   1, GL_FALSE, &(obj->mvpSet.m[0][0]));
+	glUniformMatrix4fv(uniV,   1, GL_FALSE, &(obj->mvpSet.v[0][0]));
+	glUniformMatrix4fv(uniP,   1, GL_FALSE, &(obj->mvpSet.p[0][0]));
+
 	glDrawElements(GL_TRIANGLES, obj->numIndices, GL_UNSIGNED_INT, NULL);
 }
 
@@ -304,6 +315,8 @@ int main(void) {
 
 		if (showNormals) {
 			glUseProgram(prgNormals);
+			GLuint uniMVP = glGetUniformLocation(prgNormals, "MVP");
+			glUniformMatrix4fv(uniMVP, 1, GL_FALSE, &(objects[0]->mvpSet.mvp[0][0]));
 			glDrawArrays(GL_POINTS, 0, objects[0]->numVertices);
 		}
 
@@ -316,7 +329,7 @@ int main(void) {
 			double currentTime = glfwGetTime();
 			double timePassed = currentTime - lastTime;
 			currentRotation += ROTATION_SPEED * timePassed;
-			setupMVPs(currentRotation);
+			object.mvpSet = createMVP(0.0f, 0.0f, 0.0f, currentRotation);
 			lastTime = currentTime;
 		}
 	} while (!shouldExit && glfwGetWindowParam(GLFW_OPENED));
