@@ -20,8 +20,6 @@
 #define WINDOW_HEIGHT 600
 #define WINDOW_TITLE  "Graphics coursework 3, Harry Cutts"
 
-#define NUM_SPHERE_ITERATIONS 3
-
 #define ROTATION_SPEED -8
 
 struct DisplayObject {
@@ -34,9 +32,9 @@ struct DisplayObject {
 static GLuint prgDefault, prgNormals, prgShaded;
 static GLuint prgCurrent;
 
-static glm::mat4 MVP, icosahedronMVP, lowSphereMVP, highSphereMVP, coneForEMVP;
+static glm::mat4 MVP;
 
-static DisplayObject sphere, cone, icosahedron, lowSphere, highSphere, coneForE;
+static DisplayObject object;
 static std::vector<DisplayObject*> objects;
 
 static bool showNormals = false;
@@ -190,24 +188,13 @@ glm::mat4 createMVP(GLfloat x, GLfloat y, GLfloat z, GLfloat theta) {
 
 void setupMVPs(GLfloat rotation) {
 	MVP = createMVP(0.0f, 0.0f, 0.0f, rotation);
-	icosahedronMVP = createMVP(-1.3f, 0.0f,  1.3f, rotation);
-	lowSphereMVP   = createMVP( 1.3f, 0.0f,  1.3f, rotation);
-	highSphereMVP  = createMVP( 1.3f, 0.0f, -1.3f, rotation);
-	coneForEMVP    = createMVP(-1.3f, 0.0f, -1.3f, rotation);
 }
 
 void setupGeometry(void) {
 	setupMVPs(currentRotation);
 
-	Mesh sphereMesh = loadOBJ("blender-test.obj");//generateSphere(NUM_SPHERE_ITERATIONS);
-	Mesh coneMesh   = generateCone();
-	sphere      = createDisplayObject(sphereMesh, &MVP[0][0]);
-	cone        = createDisplayObject(coneMesh, &MVP[0][0]);
-
-	icosahedron = createDisplayObject(generateIcosahedron(), &icosahedronMVP[0][0]);
-	lowSphere   = createDisplayObject(generateSphere(1), &lowSphereMVP[0][0]);
-	highSphere  = createDisplayObject(sphereMesh, &highSphereMVP[0][0]);
-	coneForE    = createDisplayObject(coneMesh, &coneForEMVP[0][0]);
+	Mesh objectMesh = loadOBJ("blender-test.obj");
+	object      = createDisplayObject(objectMesh, &MVP[0][0]);
 }
 
 // Scenes //
@@ -227,7 +214,7 @@ void drawObject(DisplayObject* obj) {
 void sceneA(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glClearColor(0.059f, 0.537f, 0.698f, 0.0f);
-	setDisplayObject(&sphere);
+	setDisplayObject(&object);
 	showNormals = false;
 	rotating = false;
 	currentRotation = 0;
@@ -236,58 +223,31 @@ void sceneA(void) {
 
 void sceneB(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glClearColor(0.239f, 0.024f, 0.698f, 0.0f);
-	setDisplayObject(&cone);
-	showNormals = false;
-	rotating = false;
-	currentRotation = 0;
-	prgCurrent = prgDefault;
-}
-
-void sceneC(void) {
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glClearColor(0.357f, 0.149f, 0.800f, 0.0f);
-	setDisplayObject(&sphere);
+	setDisplayObject(&object);
 	showNormals = true;
 	rotating = false;
 	currentRotation = 0;
 	prgCurrent = prgDefault;
 }
 
-void sceneD(void) {
+void sceneC(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glClearColor(0.341f, 0.235f, 1.000f, 0.0f);
-	setDisplayObject(&sphere);
+	setDisplayObject(&object);
 	showNormals = false;
 	rotating = false;
 	currentRotation = 0;
 	prgCurrent = prgShaded;
 }
 
-void sceneE(void) {
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glClearColor(0.239f, 0.024f, 0.698f, 0.0f);
-	objects.clear();
-	objects.push_back(&icosahedron);
-	objects.push_back(&lowSphere);
-	objects.push_back(&highSphere);
-	objects.push_back(&coneForE);
-	showNormals = false;
-	rotating = true;
-	prgCurrent = prgDefault;
-}
-
 bool processInput(void) {
-	if (glfwGetKey(static_cast<int>('A'))) {         // Wire-frame sphere
+	if (glfwGetKey(static_cast<int>('A'))) {         // Wire-frame
 		sceneA();
-	} else if (glfwGetKey(static_cast<int>('B'))) {  // Wire-frame cone
+	} else if (glfwGetKey(static_cast<int>('B'))) {  // Wire-frame with normals
 		sceneB();
-	} else if (glfwGetKey(static_cast<int>('C'))) {  // Wire-frame sphere with normals
+	} else if (glfwGetKey(static_cast<int>('C'))) {  // Shaded
 		sceneC();
-	} else if (glfwGetKey(static_cast<int>('D'))) {  // Shaded sphere
-		sceneD();
-	} else if (glfwGetKey(static_cast<int>('E'))) {  // Animation
-		sceneE();
 	} else if (glfwGetKey(static_cast<int>('F'))) {  // Textured object
 	} else if (glfwGetKey(static_cast<int>('R'))) {  // Toggle rotation
 		rotating = !rotating;  // TODO: distinguish between key presses
