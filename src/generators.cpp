@@ -137,20 +137,37 @@ Mesh loadOBJ(const char* path) {
 	GLMtriangle* triangles = model->triangles;
 	for (GLuint i = 0; i < numtriangles; i++) {
 		GLMtriangle tri = triangles[i];
-		m.indices.push_back(tri.vindices[0]);
-		m.indices.push_back(tri.vindices[1]);
-		m.indices.push_back(tri.vindices[2]);
 
-		if (tri.vindices[0] < numVertices && tri.vindices[1] < numVertices && tri.vindices[2] < numVertices) {
-			m.normals[tri.vindices[0]] = normals[tri.nindices[0]];
-			m.normals[tri.vindices[1]] = normals[tri.nindices[1]];
-			m.normals[tri.vindices[2]] = normals[tri.nindices[2]];
-			// TODO: deal with points which have multiple normals
-		} else {
+		if (tri.vindices[0] >= numVertices || tri.vindices[1] >= numVertices || tri.vindices[2] >= numVertices) {
 			// Blender exports have an annoying invalid face at the end
 			fprintf(stderr, "WARNING: triangle %d in model %s refers to a non-existent vertex.",
 			        i, path);
+			continue;
 		}
+
+		GLuint v[3];
+
+		for (unsigned int i = 0; i < 3; i++) {
+			v[i] = tri.vindices[i];
+			glm::vec3 norm = m.normals[v[i]];
+			glm::vec3 newNorm = normals[tri.nindices[i]];
+
+			if ((norm[0] != newNorm[0] || norm[1] != newNorm[1] || norm[2] != newNorm[2])) {
+				if ((norm[0] != 0.f || norm[1] != 0.f || norm[2] != 0.f)) {
+					m.normals[v[i]] = newNorm;
+				} else {
+					// This vertex has multiple normals and needs copying
+					// TODO: only copy a vertex once for each normal
+					m.vertices.push_back(m.vertices[v[i]]);
+					m.normals.push_back(newNorm);
+					v[i] = m.vertices.size() - 1;
+				}
+			}
+		}
+
+		m.indices.push_back(v[0]);
+		m.indices.push_back(v[1]);
+		m.indices.push_back(v[2]);
 	}
 	return m;
 }
