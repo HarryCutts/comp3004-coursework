@@ -20,6 +20,8 @@
 #define WINDOW_HEIGHT 600
 #define WINDOW_TITLE  "Graphics coursework 3, Harry Cutts"
 
+#define LIGHT_POSITION 5.f, 5.f, 3.f
+
 #define ROTATION_SPEED -8
 
 struct MVPSet {
@@ -73,8 +75,8 @@ GLuint createProgram(GLuint shdVertex, GLuint shdGeometry, GLuint shdFragment) {
 	if (shdVertex)   glAttachShader(prgProgram, shdVertex);
 	if (shdGeometry) glAttachShader(prgProgram, shdGeometry);
 	if (shdFragment) glAttachShader(prgProgram, shdFragment);
-	glBindAttribLocation(prgProgram, 0, "vertexPosition");
-	glBindAttribLocation(prgProgram, 1, "normal");
+	glBindAttribLocation(prgProgram, 0, "msPosition");
+	glBindAttribLocation(prgProgram, 1, "msNormal");
 	glBindFragDataLocation(prgProgram, 0, "color");
 	glLinkProgram(prgProgram);
 
@@ -122,14 +124,16 @@ void setupShaders(void) {
 
 	prgShaded = createProgram(shdShadedVertex, 0, shdShadedFragment);
 
-	GLuint uniMaterialColor = glGetUniformLocation(prgShaded, "materialColor");
-	//GLuint uniAmbientColor  = glGetUniformLocation(prgShaded, "ambientColor");
-	GLuint uniLightColor    = glGetUniformLocation(prgShaded, "lightColor");
-	GLuint uniLightVector   = glGetUniformLocation(prgShaded, "lightVector");
+	GLuint uniMaterialColor    = glGetUniformLocation(prgShaded, "materialDiffuseColor"),
+	//       uniAmbientColor  = glGetUniformLocation(prgShaded, "ambientColor"),
+	//       uniLightVector   = glGetUniformLocation(prgShaded, "lightVector"),
+	       uniLightColor       = glGetUniformLocation(prgShaded, "lightColor"),
+	       uni_wsLightPosition = glGetUniformLocation(prgShaded, "wsLightPosition");
 	glProgramUniform3f(prgShaded, uniMaterialColor, 0.2f, 0.5f, 0.2f);
 	//glProgramUniform3f(prgShaded, uniAmbientColor,  0.7f, 0.7f, 0.7f);
+	//glProgramUniform3f(prgShaded, uniLightVector,   3.0f, 3.0f, 3.0f);
 	glProgramUniform3f(prgShaded, uniLightColor,    1.0f, 1.0f, 1.0f);
-	glProgramUniform3f(prgShaded, uniLightVector,   3.0f, 3.0f, 3.0f);
+	glProgramUniform3f(prgShaded, uni_wsLightPosition, LIGHT_POSITION);
 	// TODO: put these values in a common location
 
 	glDeleteShader(shdShadedVertex);

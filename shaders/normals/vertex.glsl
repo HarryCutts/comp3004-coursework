@@ -1,7 +1,7 @@
 #version 330 core
-in vec3 vertexPosition;
-out vec3 position;
+in vec3 msPosition;
+out vec3 msPoint;    // The point which goes into the geometry shader
 
 void main() {
-	position = vertexPosition;
+	msPoint = msPosition;
 }
