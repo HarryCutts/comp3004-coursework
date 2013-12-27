@@ -248,7 +248,7 @@ void sceneB(void) {
 
 void sceneC(void) {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	glClearColor(0.341f, 0.235f, 1.000f, 0.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f); //0.341f, 0.235f, 1.000f, 0.0f);
 	setDisplayObject(&object);
 	showNormals = false;
 	rotating = false;
