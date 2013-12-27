@@ -124,17 +124,13 @@ void setupShaders(void) {
 
 	prgShaded = createProgram(shdShadedVertex, 0, shdShadedFragment);
 
-	GLuint uniMaterialColor    = glGetUniformLocation(prgShaded, "materialDiffuseColor"),
-	       uniSpecularColor    = glGetUniformLocation(prgShaded, "specularColor"),
-	//       uniAmbientColor  = glGetUniformLocation(prgShaded, "ambientColor"),
-	//       uniLightVector   = glGetUniformLocation(prgShaded, "lightVector"),
-	       uniLightColor       = glGetUniformLocation(prgShaded, "lightColor"),
+	GLuint uni_diffuseColor    = glGetUniformLocation(prgShaded, "diffuseColor"),
+	       uni_specularColor   = glGetUniformLocation(prgShaded, "specularColor"),
+	       uni_lightColor      = glGetUniformLocation(prgShaded, "lightColor"),
 	       uni_wsLightPosition = glGetUniformLocation(prgShaded, "wsLightPosition");
-	glProgramUniform3f(prgShaded, uniMaterialColor, 0.2f, 0.5f, 0.2f);
-	glProgramUniform3f(prgShaded, uniSpecularColor, 0.5f, 0.5f, 0.5f);
-	//glProgramUniform3f(prgShaded, uniAmbientColor,  0.7f, 0.7f, 0.7f);
-	//glProgramUniform3f(prgShaded, uniLightVector,   3.0f, 3.0f, 3.0f);
-	glProgramUniform3f(prgShaded, uniLightColor,    1.0f, 1.0f, 1.0f);
+	glProgramUniform3f(prgShaded, uni_diffuseColor,  0.2f, 0.5f, 0.2f);
+	glProgramUniform3f(prgShaded, uni_specularColor, 0.5f, 0.5f, 0.5f);
+	glProgramUniform3f(prgShaded, uni_lightColor,    1.0f, 1.0f, 1.0f);
 	glProgramUniform3f(prgShaded, uni_wsLightPosition, LIGHT_POSITION);
 	// TODO: put these values in a common location
 
