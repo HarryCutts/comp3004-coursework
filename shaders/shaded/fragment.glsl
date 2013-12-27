@@ -14,6 +14,9 @@ void main() {
 
 	float cosTheta = dot(n, l);
 
-	color = materialDiffuseColor * lightColor * cosTheta;
+	// Ambient lighting
+	vec3 ambientColor = vec3(0.1, 0.1, 0.1) * materialDiffuseColor;
+
+	color = ambientColor + materialDiffuseColor * lightColor * cosTheta;
 	// TODO: make the light fade by distance to the source?
 }
