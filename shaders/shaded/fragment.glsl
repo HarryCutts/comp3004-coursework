@@ -2,15 +2,19 @@
 in vec3 csNormal;
 in vec3 csLightDirection;
 in vec3 csEyeDirection;
+in vec2 uvTexCoord;
 out vec3 color;
 
-uniform vec3 diffuseColor;
+uniform sampler2D diffuseTexture;
+
 uniform vec3 specularColor;
 uniform vec3 lightColor;
 //uniform vec3 lightVector;
 
 void main() {
-	// Code adapted from http://opengl-tutorial.org/beginners-tutorials/tutorial-8-basic-shading/
+	// Code adapted from http://opengl-tutorial.org/beginners-tutorials/
+	vec3 diffuseColor = texture2D(diffuseTexture, uvTexCoord).rgb;
+
 	vec3 n = normalize(csNormal);
 	vec3 l = normalize(csLightDirection);
 

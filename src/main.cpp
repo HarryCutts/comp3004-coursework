@@ -77,6 +77,7 @@ GLuint createProgram(GLuint shdVertex, GLuint shdGeometry, GLuint shdFragment) {
 	if (shdFragment) glAttachShader(prgProgram, shdFragment);
 	glBindAttribLocation(prgProgram, 0, "msPosition");
 	glBindAttribLocation(prgProgram, 1, "msNormal");
+	glBindAttribLocation(prgProgram, 2, "uv");
 	glBindFragDataLocation(prgProgram, 0, "color");
 	glLinkProgram(prgProgram);
 
@@ -93,6 +94,26 @@ GLuint createProgram(GLuint shdVertex, GLuint shdGeometry, GLuint shdFragment) {
 	}
 
 	return prgProgram;
+}
+
+/** Loads and binds the texture stored in the TGA file at the given path.
+ * @return the ID of the loaded texture (prefix `tex`). */
+GLuint loadTGA(const char *imagePath) {
+	// Method from http://opengl-tutorial.org/beginners-tutorials/tutorial-5-a-textured-cube/#How_to_load_texture_with_GLFW
+	GLuint tex;
+	glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+
+    glfwLoadTexture2D(imagePath, 0);
+
+    // Nice trilinear filtering
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    return tex;
 }
 
 // Setup methods //
@@ -118,6 +139,10 @@ void setupShaders(void) {
 	glDeleteShader(shdNormalVertex);
 	glDeleteShader(shdNormalFragment);
 
+	// Crate texture
+	GLuint texCrate = loadTGA("textures/crate.tga");
+    glBindTexture(GL_TEXTURE_2D, texCrate);
+
 	// Shaded program
 	GLuint shdShadedVertex   = createShader(GL_VERTEX_SHADER,   "shaders/shaded/vertex.glsl");
 	GLuint shdShadedFragment = createShader(GL_FRAGMENT_SHADER, "shaders/shaded/fragment.glsl");
@@ -127,12 +152,15 @@ void setupShaders(void) {
 	GLuint uni_diffuseColor    = glGetUniformLocation(prgShaded, "diffuseColor"),
 	       uni_specularColor   = glGetUniformLocation(prgShaded, "specularColor"),
 	       uni_lightColor      = glGetUniformLocation(prgShaded, "lightColor"),
-	       uni_wsLightPosition = glGetUniformLocation(prgShaded, "wsLightPosition");
+	       uni_wsLightPosition = glGetUniformLocation(prgShaded, "wsLightPosition"),
+	       uni_diffuseTexture  = glGetUniformLocation(prgShaded, "diffuseTexture");
 	glProgramUniform3f(prgShaded, uni_diffuseColor,  0.2f, 0.5f, 0.2f);
 	glProgramUniform3f(prgShaded, uni_specularColor, 0.5f, 0.5f, 0.5f);
 	glProgramUniform3f(prgShaded, uni_lightColor,    1.0f, 1.0f, 1.0f);
 	glProgramUniform3f(prgShaded, uni_wsLightPosition, LIGHT_POSITION);
 	// TODO: put these values in a common location
+
+	glProgramUniform1i(prgShaded, uni_diffuseTexture, 0);
 
 	glDeleteShader(shdShadedVertex);
 	glDeleteShader(shdShadedFragment);
@@ -144,6 +172,7 @@ DisplayObject createDisplayObject(const Mesh &mesh, MVPSet mvpSet) {
 	glGenVertexArrays(1, &vaoVAO);
 	glBindVertexArray(vaoVAO);
 
+	// TODO: use a generic method for creating VBOs
 	// Vertex VBO
 	GLuint vboVertex;
 	glGenBuffers(1, &vboVertex);
@@ -163,6 +192,16 @@ DisplayObject createDisplayObject(const Mesh &mesh, MVPSet mvpSet) {
 	// Bind as buffer 1
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	// Texture coordinates VBO
+	GLuint vboTexCoords;
+	glGenBuffers(1, &vboTexCoords);
+	glBindBuffer(GL_ARRAY_BUFFER, vboTexCoords);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * mesh.texCoords.size(), mesh.texCoords.data(), GL_STATIC_DRAW);
+
+	// Bind as buffer 2
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
 	// Indices VBO
 	GLuint vboIndices;
@@ -198,7 +237,7 @@ MVPSet createMVP(GLfloat x, GLfloat y, GLfloat z, GLfloat theta) {
 void setupGeometry(void) {
 	MVPSet MVP = createMVP(0.0f, 0.0f, 0.0f, currentRotation);
 
-	Mesh objectMesh = loadOBJ("blender-test.obj");
+	Mesh objectMesh = loadOBJ("crate.obj");
 	object      = createDisplayObject(objectMesh, MVP);
 }
 
@@ -302,7 +341,7 @@ int main(void) {
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
 
-	sceneA();
+	sceneC();
 
 	// Main loop
 	printf("Entering main loop.\n");
@@ -310,6 +349,10 @@ int main(void) {
 	bool shouldExit = false;
 	do {
 		glUseProgram(prgCurrent);
+
+		//glActiveTexture(GL_TEXTURE0);  // One or both will be needed to change textures later
+		//glBindTexture(GL_TEXTURE_2D, texCrate);
+
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		for (unsigned int i = 0; i < objects.size(); i++) {
 			drawObject(objects[i]);

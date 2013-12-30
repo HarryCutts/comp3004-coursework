@@ -161,7 +161,7 @@ Mesh loadOBJ(const char* path) {
 			// Subtract 1 from each index to make them zero-based
 			m.vertices .push_back(vertices [tri.vindices[j] - 1]);
 			m.normals  .push_back(normals  [tri.nindices[j] - 1]);
-			//m.texCoords.push_back(texCoords[tri.tindices[j] - 1]);
+			m.texCoords.push_back(texCoords[tri.tindices[j] - 1]);
 			m.indices.push_back(m.indices.size());
 			// TODO: make this more efficient or replace with a binary format solution
 		}

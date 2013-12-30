@@ -1,9 +1,11 @@
 #version 330 core
 in vec3 msPosition;
 in vec3 msNormal;
+in vec2 uv;
 out vec3 csEyeDirection;
 out vec3 csLightDirection;
 out vec3 csNormal;
+out vec2 uvTexCoord;
 
 uniform mat4 MVP;
 uniform mat4 M;
@@ -12,7 +14,7 @@ uniform mat4 V;
 uniform vec3 wsLightPosition;
 
 void main() {
-	// Code adapted from http://opengl-tutorial.org/beginners-tutorials/tutorial-8-basic-shading/
+	// Code adapted from http://opengl-tutorial.org/beginners-tutorials/
 	gl_Position = MVP * vec4(msPosition, 1);
 
 	//wsPosition = (M * vec4(msPosition, 1)).xyz;
@@ -25,4 +27,6 @@ void main() {
 
 	csNormal = (V * M * vec4(msNormal, 0)).xyz;
 		// Only correct if ModelMatrix does not scale the model! Use its inverse transpose if not.
+
+	uvTexCoord = uv;
 }
