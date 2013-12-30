@@ -115,6 +115,13 @@ Mesh generateCone(void) {
 	return m;
 }
 
+/** Turns pairs of GLfloats into glm::vec2s and adds them to the given std::vector. */
+static void pairsToVec2s(GLfloat* data, GLuint numPairs, std::vector<glm::vec2> &vector) {
+	for (GLuint i = 0; i < numPairs * 2; i += 2) {
+		vector.push_back(glm::vec2(data[i], data[i+1]));
+	}
+}
+
 /** Turns sets of three GLfloats into glm::vec3s and adds them to the given std::vector. */
 static void tripletsToVec3s(GLfloat* data, GLuint numTriplets, std::vector<glm::vec3> &vector) {
 	for (GLuint i = 0; i < numTriplets * 3; i += 3) {
@@ -126,16 +133,19 @@ Mesh loadOBJ(const char* path) {
 	GLMmodel* model = glmReadOBJ((char*)path);
 	Mesh m;
 
-	tripletsToVec3s(model->vertices, model->numvertices, m.vertices);
-	m.normals.resize(model->numvertices);
+	std::vector<glm::vec3> vertices;
+	tripletsToVec3s(model->vertices, model->numvertices, vertices);
 
 	std::vector<glm::vec3> normals;
 	tripletsToVec3s(model->normals, model->numnormals, normals);
 
+	std::vector<glm::vec2> texCoords;
+	pairsToVec2s(model->texcoords, model->numtexcoords, texCoords);
+
 	GLuint numVertices  = model->numvertices;
-	GLuint numtriangles = model->numtriangles;
+	GLuint numTriangles = model->numtriangles;
 	GLMtriangle* triangles = model->triangles;
-	for (GLuint i = 0; i < numtriangles; i++) {
+	for (GLuint i = 0; i < numTriangles; i++) {
 		GLMtriangle tri = triangles[i];
 
 		if (tri.vindices[0] >= numVertices || tri.vindices[1] >= numVertices || tri.vindices[2] >= numVertices) {
@@ -147,27 +157,14 @@ Mesh loadOBJ(const char* path) {
 
 		GLuint v[3];
 
-		for (unsigned int i = 0; i < 3; i++) {
-			v[i] = tri.vindices[i];
-			glm::vec3 norm = m.normals[v[i]];
-			glm::vec3 newNorm = normals[tri.nindices[i]];
-
-			if ((norm[0] != newNorm[0] || norm[1] != newNorm[1] || norm[2] != newNorm[2])) {
-				if ((norm[0] != 0.f || norm[1] != 0.f || norm[2] != 0.f)) {
-					m.normals[v[i]] = newNorm;
-				} else {
-					// This vertex has multiple normals and needs copying
-					// TODO: only copy a vertex once for each normal
-					m.vertices.push_back(m.vertices[v[i]]);
-					m.normals.push_back(newNorm);
-					v[i] = m.vertices.size() - 1;
-				}
-			}
+		for (unsigned int j = 0; j < 3; j++) {
+			v[j] = tri.vindices[j];
+			m.vertices.push_back(vertices[v[j]]);
+			m.normals.push_back(normals[tri.nindices[j]]);
+			//m.texCoords.push_back(texCoords[tri.tindices[j]]);
+			m.indices.push_back(m.indices.size());
+			// TODO: make this more efficient or replace with a binary format solution
 		}
-
-		m.indices.push_back(v[0]);
-		m.indices.push_back(v[1]);
-		m.indices.push_back(v[2]);
 	}
 	return m;
 }
