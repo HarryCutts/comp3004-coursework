@@ -116,15 +116,15 @@ Mesh generateCone(void) {
 }
 
 /** Turns pairs of GLfloats into glm::vec2s and adds them to the given std::vector. */
-static void pairsToVec2s(GLfloat* data, GLuint numPairs, std::vector<glm::vec2> &vector) {
-	for (GLuint i = 0; i < numPairs * 2; i += 2) {
+static void pairsToVec2s(GLfloat* data, GLuint start, GLuint numPairs, std::vector<glm::vec2> &vector) {
+	for (GLuint i = start; i < numPairs * 2 + start; i += 2) {
 		vector.push_back(glm::vec2(data[i], data[i+1]));
 	}
 }
 
 /** Turns sets of three GLfloats into glm::vec3s and adds them to the given std::vector. */
-static void tripletsToVec3s(GLfloat* data, GLuint numTriplets, std::vector<glm::vec3> &vector) {
-	for (GLuint i = 0; i < numTriplets * 3; i += 3) {
+static void tripletsToVec3s(GLfloat* data, GLuint start, GLuint numTriplets, std::vector<glm::vec3> &vector) {
+	for (GLuint i = start; i < numTriplets * 3 + start; i += 3) {
 		vector.push_back(glm::vec3(data[i], data[i+1], data[i+2]));
 	}
 }
@@ -133,14 +133,15 @@ Mesh loadOBJ(const char* path) {
 	GLMmodel* model = glmReadOBJ((char*)path);
 	Mesh m;
 
+	// glmReadOBJ returns 1-based indices, hence the offsets
 	std::vector<glm::vec3> vertices;
-	tripletsToVec3s(model->vertices, model->numvertices, vertices);
+	tripletsToVec3s(model->vertices, 3, model->numvertices, vertices);
 
 	std::vector<glm::vec3> normals;
-	tripletsToVec3s(model->normals, model->numnormals, normals);
+	tripletsToVec3s(model->normals, 3, model->numnormals, normals);
 
 	std::vector<glm::vec2> texCoords;
-	pairsToVec2s(model->texcoords, model->numtexcoords, texCoords);
+	pairsToVec2s(model->texcoords, 2, model->numtexcoords, texCoords);
 
 	GLuint numVertices  = model->numvertices;
 	GLuint numTriangles = model->numtriangles;
@@ -148,20 +149,19 @@ Mesh loadOBJ(const char* path) {
 	for (GLuint i = 0; i < numTriangles; i++) {
 		GLMtriangle tri = triangles[i];
 
-		if (tri.vindices[0] >= numVertices || tri.vindices[1] >= numVertices || tri.vindices[2] >= numVertices) {
+		// > not >=, because of 1-based
+		if (tri.vindices[0] > numVertices || tri.vindices[1] > numVertices || tri.vindices[2] > numVertices) {
 			// Blender exports have an annoying invalid face at the end
-			fprintf(stderr, "WARNING: triangle %d in model %s refers to a non-existent vertex.",
+			fprintf(stderr, "WARNING: triangle %d in %s refers to a non-existent vertex.\n",
 			        i, path);
 			continue;
 		}
 
-		GLuint v[3];
-
 		for (unsigned int j = 0; j < 3; j++) {
-			v[j] = tri.vindices[j];
-			m.vertices.push_back(vertices[v[j]]);
-			m.normals.push_back(normals[tri.nindices[j]]);
-			//m.texCoords.push_back(texCoords[tri.tindices[j]]);
+			// Subtract 1 from each index to make them zero-based
+			m.vertices .push_back(vertices [tri.vindices[j] - 1]);
+			m.normals  .push_back(normals  [tri.nindices[j] - 1]);
+			//m.texCoords.push_back(texCoords[tri.tindices[j] - 1]);
 			m.indices.push_back(m.indices.size());
 			// TODO: make this more efficient or replace with a binary format solution
 		}
