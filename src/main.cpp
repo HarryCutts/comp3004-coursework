@@ -166,42 +166,38 @@ void setupShaders(void) {
 	glDeleteShader(shdShadedFragment);
 }
 
+/** Creates a Vertex Buffer Object, fills it with the given items, and binds it
+ * as a Vertex Attribute Array.
+ * @param index         The index of the generic vertex attribute to be modified.
+ * @param numComponents The number of components per generic vertex attribute.
+ * @param items         A std::vector containing the data.
+ * @tparam T The type of the items in the data.
+ * @return the index of the Vertex Buffer Object (prefix `vbo`).
+ */
+template <class T>
+static GLuint createVertexAttribVBO(GLuint index, GLint numComponents, const std::vector<T> &items) {
+	GLuint vbo;
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(T) * items.size(), items.data(), GL_STATIC_DRAW);
+
+	// Bind as vertex attribute array
+	glEnableVertexAttribArray(index);
+	glVertexAttribPointer(index, numComponents, GL_FLOAT, GL_FALSE, 0, 0);
+
+	return vbo;
+}
+
 DisplayObject createDisplayObject(const Mesh &mesh, MVPSet mvpSet) {
 	// Create a VAO
-	GLuint vaoVAO;
-	glGenVertexArrays(1, &vaoVAO);
-	glBindVertexArray(vaoVAO);
+	GLuint vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
 
-	// TODO: use a generic method for creating VBOs
-	// Vertex VBO
-	GLuint vboVertex;
-	glGenBuffers(1, &vboVertex);
-	glBindBuffer(GL_ARRAY_BUFFER, vboVertex);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.vertices.size(), mesh.vertices.data(), GL_STATIC_DRAW);
-
-	// Bind as buffer 0
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-	// Normals VBO
-	GLuint vboNormals;
-	glGenBuffers(1, &vboNormals);
-	glBindBuffer(GL_ARRAY_BUFFER, vboNormals);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * mesh.normals.size(), mesh.normals.data(), GL_STATIC_DRAW);
-
-	// Bind as buffer 1
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-	// Texture coordinates VBO
-	GLuint vboTexCoords;
-	glGenBuffers(1, &vboTexCoords);
-	glBindBuffer(GL_ARRAY_BUFFER, vboTexCoords);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * mesh.texCoords.size(), mesh.texCoords.data(), GL_STATIC_DRAW);
-
-	// Bind as buffer 2
-	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	// Create vertex attribute VBOs
+	createVertexAttribVBO<glm::vec3>(0, 3, mesh.vertices);
+	createVertexAttribVBO<glm::vec3>(1, 3, mesh.normals);
+	createVertexAttribVBO<glm::vec2>(2, 2, mesh.texCoords);
 
 	// Indices VBO
 	GLuint vboIndices;
@@ -211,7 +207,7 @@ DisplayObject createDisplayObject(const Mesh &mesh, MVPSet mvpSet) {
 
 	// DisplayObject
 	DisplayObject obj;
-	obj.vao = vaoVAO;
+	obj.vao = vao;
 	obj.numVertices = mesh.vertices.size();
 	obj.numIndices  = mesh.indices.size();
 	obj.mvpSet = mvpSet;
