@@ -36,6 +36,7 @@ struct DisplayObject {
 	int numIndices;
 	GLuint vao;
 	MVPSet mvpSet;
+	GLuint tex;
 };
 
 static GLuint prgDefault, prgNormals, prgShaded;
@@ -139,10 +140,6 @@ void setupShaders(void) {
 	glDeleteShader(shdNormalVertex);
 	glDeleteShader(shdNormalFragment);
 
-	// Crate texture
-	GLuint texCrate = loadTGA("textures/crate.tga");
-    glBindTexture(GL_TEXTURE_2D, texCrate);
-
 	// Shaded program
 	GLuint shdShadedVertex   = createShader(GL_VERTEX_SHADER,   "shaders/shaded/vertex.glsl");
 	GLuint shdShadedFragment = createShader(GL_FRAGMENT_SHADER, "shaders/shaded/fragment.glsl");
@@ -188,7 +185,7 @@ static GLuint createVertexAttribVBO(GLuint index, GLint numComponents, const std
 	return vbo;
 }
 
-DisplayObject createDisplayObject(const Mesh &mesh, MVPSet mvpSet) {
+DisplayObject createDisplayObject(const Mesh &mesh, MVPSet mvpSet, const char *texturePath) {
 	// Create a VAO
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
@@ -211,6 +208,7 @@ DisplayObject createDisplayObject(const Mesh &mesh, MVPSet mvpSet) {
 	obj.numVertices = mesh.vertices.size();
 	obj.numIndices  = mesh.indices.size();
 	obj.mvpSet = mvpSet;
+	obj.tex = loadTGA(texturePath);  // TODO: prevent textures being loaded twice
 	return obj;
 }
 
@@ -234,7 +232,7 @@ void setupGeometry(void) {
 	MVPSet MVP = createMVP(0.0f, 0.0f, 0.0f, currentRotation);
 
 	Mesh objectMesh = loadOBJ("crate.obj");
-	object      = createDisplayObject(objectMesh, MVP);
+	object      = createDisplayObject(objectMesh, MVP, "textures/crate.tga");
 }
 
 // Scenes //
@@ -247,6 +245,7 @@ void setDisplayObject(DisplayObject* obj) {
 void drawObject(DisplayObject* obj) {
 	glBindVertexArray(obj->vao);
 
+	// Set the MVPs
 	GLuint uniMVP = glGetUniformLocation(prgCurrent, "MVP"),
 	       uniM   = glGetUniformLocation(prgCurrent, "M"),
 	       uniV   = glGetUniformLocation(prgCurrent, "V"),
@@ -255,6 +254,9 @@ void drawObject(DisplayObject* obj) {
 	glUniformMatrix4fv(uniM,   1, GL_FALSE, &(obj->mvpSet.m[0][0]));
 	glUniformMatrix4fv(uniV,   1, GL_FALSE, &(obj->mvpSet.v[0][0]));
 	glUniformMatrix4fv(uniP,   1, GL_FALSE, &(obj->mvpSet.p[0][0]));
+
+	// Set the texture
+	glBindTexture(GL_TEXTURE_2D, obj->tex);
 
 	glDrawElements(GL_TRIANGLES, obj->numIndices, GL_UNSIGNED_INT, NULL);
 }
@@ -345,9 +347,6 @@ int main(void) {
 	bool shouldExit = false;
 	do {
 		glUseProgram(prgCurrent);
-
-		//glActiveTexture(GL_TEXTURE0);  // One or both will be needed to change textures later
-		//glBindTexture(GL_TEXTURE_2D, texCrate);
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		for (unsigned int i = 0; i < objects.size(); i++) {
