@@ -39,8 +39,8 @@ struct DisplayObject {
 	GLuint tex;
 };
 
-static GLuint prgDefault, prgNormals, prgShaded;
-static GLuint prgCurrent;
+static GLuint prgNormals;
+static GLuint prgShaded;
 
 static DisplayObject object;
 static std::vector<DisplayObject*> objects;
@@ -120,15 +120,6 @@ GLuint loadTGA(const char *imagePath) {
 // Setup methods //
 
 void setupShaders(void) {
-	// Standard program
-	GLuint shdVertex   = createShader(GL_VERTEX_SHADER,   "shaders/vertex.glsl");
-	GLuint shdFragment = createShader(GL_FRAGMENT_SHADER, "shaders/fragment.glsl");
-
-	prgDefault = createProgram(shdVertex, 0, shdFragment);
-
-	glDeleteShader(shdVertex);
-	glDeleteShader(shdFragment);
-
 	// Normals program
 	GLuint shdNormalVertex   = createShader(GL_VERTEX_SHADER,   "shaders/normals/vertex.glsl");
 	GLuint shdNormalGeometry = createShader(GL_GEOMETRY_SHADER, "shaders/normals/geometry.glsl");
@@ -161,6 +152,8 @@ void setupShaders(void) {
 
 	glDeleteShader(shdShadedVertex);
 	glDeleteShader(shdShadedFragment);
+
+	glUseProgram(prgShaded);
 }
 
 /** Creates a Vertex Buffer Object, fills it with the given items, and binds it
@@ -246,10 +239,10 @@ void drawObject(DisplayObject* obj) {
 	glBindVertexArray(obj->vao);
 
 	// Set the MVPs
-	GLuint uniMVP = glGetUniformLocation(prgCurrent, "MVP"),
-	       uniM   = glGetUniformLocation(prgCurrent, "M"),
-	       uniV   = glGetUniformLocation(prgCurrent, "V"),
-	       uniP   = glGetUniformLocation(prgCurrent, "P");
+	GLuint uniMVP = glGetUniformLocation(prgShaded, "MVP"),
+	       uniM   = glGetUniformLocation(prgShaded, "M"),
+	       uniV   = glGetUniformLocation(prgShaded, "V"),
+	       uniP   = glGetUniformLocation(prgShaded, "P");
 	glUniformMatrix4fv(uniMVP, 1, GL_FALSE, &(obj->mvpSet.mvp[0][0]));
 	glUniformMatrix4fv(uniM,   1, GL_FALSE, &(obj->mvpSet.m[0][0]));
 	glUniformMatrix4fv(uniV,   1, GL_FALSE, &(obj->mvpSet.v[0][0]));
@@ -261,53 +254,22 @@ void drawObject(DisplayObject* obj) {
 	glDrawElements(GL_TRIANGLES, obj->numIndices, GL_UNSIGNED_INT, NULL);
 }
 
-void sceneA(void) {
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glClearColor(0.059f, 0.537f, 0.698f, 0.0f);
+void scene() {
 	setDisplayObject(&object);
-	showNormals = false;
-	rotating = false;
-	currentRotation = 0;
-	prgCurrent = prgDefault;
-}
-
-void sceneB(void) {
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glClearColor(0.357f, 0.149f, 0.800f, 0.0f);
-	setDisplayObject(&object);
-	showNormals = true;
-	rotating = false;
-	currentRotation = 0;
-	prgCurrent = prgDefault;
-}
-
-void sceneC(void) {
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f); //0.341f, 0.235f, 1.000f, 0.0f);
-	setDisplayObject(&object);
-	showNormals = false;
-	rotating = false;
-	currentRotation = 0;
-	prgCurrent = prgShaded;
 }
 
 bool processInput(void) {
-	if (glfwGetKey(static_cast<int>('A'))) {         // Wire-frame
-		sceneA();
-	} else if (glfwGetKey(static_cast<int>('B'))) {  // Wire-frame with normals
-		sceneB();
-	} else if (glfwGetKey(static_cast<int>('C'))) {  // Shaded
-		sceneC();
-	} else if (glfwGetKey(static_cast<int>('F'))) {  // Textured object
-	} else if (glfwGetKey(static_cast<int>('R'))) {  // Toggle rotation
-		rotating = !rotating;  // TODO: distinguish between key presses
+	// TODO: distinguish between key presses
+	if (glfwGetKey(static_cast<int>('R'))) {  // Toggle rotation
+		rotating = !rotating;
+	} else if (glfwGetKey(static_cast<int>('N'))) {
+		showNormals = !showNormals;
 	} else if (glfwGetKey(GLFW_KEY_ESC) || glfwGetKey(static_cast<int>('Q'))) {
 		return true;
 	}
 
 	return false;
 }
-
 
 int main(void) {
 	if (!glfwInit()) {
@@ -336,18 +298,20 @@ int main(void) {
 	setupShaders();
 	checkForError("After shader setup");
 
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
 
-	sceneC();
+	scene();
 
 	// Main loop
 	printf("Entering main loop.\n");
 	double lastTime = glfwGetTime();
 	bool shouldExit = false;
 	do {
-		glUseProgram(prgCurrent);
-
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		for (unsigned int i = 0; i < objects.size(); i++) {
 			drawObject(objects[i]);
@@ -356,8 +320,11 @@ int main(void) {
 		if (showNormals) {
 			glUseProgram(prgNormals);
 			GLuint uniMVP = glGetUniformLocation(prgNormals, "MVP");
-			glUniformMatrix4fv(uniMVP, 1, GL_FALSE, &(objects[0]->mvpSet.mvp[0][0]));
-			glDrawArrays(GL_POINTS, 0, objects[0]->numVertices);
+			for (unsigned int i = 0; i < objects.size(); i++) {
+				glUniformMatrix4fv(uniMVP, 1, GL_FALSE, &(objects[i]->mvpSet.mvp[0][0]));
+				glDrawArrays(GL_POINTS, 0, objects[i]->numVertices);
+			}
+			glUseProgram(prgShaded);
 		}
 
 		glfwSwapBuffers();
