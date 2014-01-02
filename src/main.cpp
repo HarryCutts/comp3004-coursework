@@ -11,6 +11,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "paths.h"
 #include "utils.h"
 #include "generators.h"
 
@@ -121,9 +122,9 @@ GLuint loadTGA(const char *imagePath) {
 
 void setupShaders(void) {
 	// Normals program
-	GLuint shdNormalVertex   = createShader(GL_VERTEX_SHADER,   "shaders/normals/vertex.glsl");
-	GLuint shdNormalGeometry = createShader(GL_GEOMETRY_SHADER, "shaders/normals/geometry.glsl");
-	GLuint shdNormalFragment = createShader(GL_FRAGMENT_SHADER, "shaders/normals/fragment.glsl");
+	GLuint shdNormalVertex   = createShader(GL_VERTEX_SHADER,   SHADER("normals-vertex.glsl"));
+	GLuint shdNormalGeometry = createShader(GL_GEOMETRY_SHADER, SHADER("normals-geometry.glsl"));
+	GLuint shdNormalFragment = createShader(GL_FRAGMENT_SHADER, SHADER("normals-fragment.glsl"));
 
 	prgNormals = createProgram(shdNormalVertex, shdNormalGeometry, shdNormalFragment);
 
@@ -132,8 +133,8 @@ void setupShaders(void) {
 	glDeleteShader(shdNormalFragment);
 
 	// Shaded program
-	GLuint shdShadedVertex   = createShader(GL_VERTEX_SHADER,   "shaders/shaded/vertex.glsl");
-	GLuint shdShadedFragment = createShader(GL_FRAGMENT_SHADER, "shaders/shaded/fragment.glsl");
+	GLuint shdShadedVertex   = createShader(GL_VERTEX_SHADER,   SHADER("vertex.glsl"));
+	GLuint shdShadedFragment = createShader(GL_FRAGMENT_SHADER, SHADER("fragment.glsl"));
 
 	prgShaded = createProgram(shdShadedVertex, 0, shdShadedFragment);
 
@@ -224,8 +225,8 @@ MVPSet createMVP(GLfloat x, GLfloat y, GLfloat z, GLfloat theta) {
 void setupGeometry(void) {
 	MVPSet MVP = createMVP(0.0f, 0.0f, 0.0f, currentRotation);
 
-	Mesh objectMesh = loadOBJ("crate.obj");
-	object      = createDisplayObject(objectMesh, MVP, "textures/crate.tga");
+	Mesh objectMesh = loadOBJ(MODEL("crate.obj"));
+	object      = createDisplayObject(objectMesh, MVP, TEXTURE("crate.tga"));
 }
 
 // Scenes //
