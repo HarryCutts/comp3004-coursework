@@ -274,17 +274,22 @@ void drawObject(DisplayObject* obj) {
 	glDrawElements(GL_TRIANGLES, obj->numIndices, GL_UNSIGNED_INT, NULL);
 }
 
-bool processInput(void) {
-	// TODO: distinguish between key presses
-	if (glfwGetKey(static_cast<int>('R'))) {  // Toggle rotation
-		rotating = !rotating;
-	} else if (glfwGetKey(static_cast<int>('N'))) {
-		showNormals = !showNormals;
-	} else if (glfwGetKey(GLFW_KEY_ESC) || glfwGetKey(static_cast<int>('Q'))) {
-		return true;
-	}
+static bool rPressed = false, nPressed = false;
 
-	return false;
+bool processInput(void) {
+	bool r = glfwGetKey(static_cast<int>('R'));
+	if (r && !rPressed) {
+		rotating = !rotating;
+	}
+	rPressed = r;
+
+	bool n = glfwGetKey(static_cast<int>('N'));
+	if (n && !nPressed) {
+		showNormals = !showNormals;
+	}
+	nPressed = n;
+
+	return (glfwGetKey(GLFW_KEY_ESC) || glfwGetKey(static_cast<int>('Q')));
 }
 
 int main(void) {
