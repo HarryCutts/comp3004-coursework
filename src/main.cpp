@@ -36,14 +36,19 @@ struct DisplayObject {
 	int numVertices;
 	int numIndices;
 	GLuint vao;
-	MVPSet mvpSet;
+
 	GLuint tex;
+
+	glm::vec3 location;
+	glm::vec3 rotation;
+	GLfloat scale;
+
+	MVPSet mvpSet;
 };
 
 static GLuint prgNormals;
 static GLuint prgShaded;
 
-static DisplayObject object;
 static std::vector<DisplayObject*> objects;
 
 static bool showNormals = false;
@@ -179,7 +184,26 @@ static GLuint createVertexAttribVBO(GLuint index, GLint numComponents, const std
 	return vbo;
 }
 
-DisplayObject createDisplayObject(const Mesh &mesh, MVPSet mvpSet, const char *texturePath) {
+void updateMVP(DisplayObject &object) {
+	MVPSet set;
+
+	glm::mat4 rotateX = glm::rotate(glm::mat4(1.), object.rotation[0], glm::vec3(1, 0, 0));
+	glm::mat4 rotateY = glm::rotate(glm::mat4(1.), object.rotation[1], glm::vec3(0, 1, 0));
+	glm::mat4 rotateZ = glm::rotate(glm::mat4(1.), object.rotation[2], glm::vec3(0, 0, 1));
+	glm::mat4 translate  = glm::translate(glm::mat4(1.), object.location);
+	set.m = translate * rotateZ * rotateY * rotateX;
+
+	// TODO: scale
+
+	set.v = glm::lookAt(glm::vec3(5,5,5), glm::vec3(0,0,0), glm::vec3(0,1,0));
+	set.p = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
+
+	set.mvp = set.p * set.v * set.m;
+	object.mvpSet = set;
+}
+
+DisplayObject createDisplayObject(const Mesh &mesh, const char *texturePath,
+			glm::vec3 location, glm::vec3 rotation) {
 	// Create a VAO
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
@@ -201,40 +225,35 @@ DisplayObject createDisplayObject(const Mesh &mesh, MVPSet mvpSet, const char *t
 	obj.vao = vao;
 	obj.numVertices = mesh.vertices.size();
 	obj.numIndices  = mesh.indices.size();
-	obj.mvpSet = mvpSet;
 	obj.tex = loadTGA(texturePath);  // TODO: prevent textures being loaded twice
+	obj.location = location;
+	obj.rotation = rotation;
+	updateMVP(obj);
+
 	return obj;
 }
 
-MVPSet createMVP(GLfloat x, GLfloat y, GLfloat z, GLfloat theta) {
-	MVPSet set;
-
-	glm::mat4 rotateY    = glm::rotate(glm::mat4(1.), theta, glm::vec3(0,1,0));
-	glm::mat4 translate  = glm::translate(glm::mat4(1.), glm::vec3(x, y, z));
-	GLfloat zRotation = -theta * 1.3;
-	glm::mat4 rotateZ = glm::rotate(glm::mat4(1.), zRotation, glm::vec3(0,0,1));
-	set.m = translate * rotateZ * rotateY;
-
-	set.v = glm::lookAt(glm::vec3(5,5,5), glm::vec3(0,0,0), glm::vec3(0,1,0));
-	set.p = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
-
-	set.mvp = set.p * set.v * set.m;
-	return set;
+DisplayObject createDisplayObject(const Mesh &mesh, const char *texturePath,
+			glm::vec3 location) {
+	return createDisplayObject(mesh, texturePath, location, glm::vec3(0, 0, 0));
 }
 
-void setupGeometry(void) {
-	MVPSet MVP = createMVP(0.0f, 0.0f, 0.0f, currentRotation);
+static DisplayObject crate, clanger;
 
-	Mesh objectMesh = loadOBJ(MODEL("crate.obj"));
-	object      = createDisplayObject(objectMesh, MVP, TEXTURE("crate.tga"));
-}
+void scene() {
+	glm::vec3 crateLocation   = glm::vec3(2.0f, 2.0f, 0.0f);
+	glm::vec3 clangerLocation = glm::vec3(-2.0f, -2.0f, 0.0f);
 
-// Scenes //
-
-void setDisplayObject(DisplayObject* obj) {
 	objects.clear();
-	objects.push_back(obj);
+	Mesh objectMesh = loadOBJ(MODEL("crate.obj"));
+	crate = createDisplayObject(objectMesh, TEXTURE("crate.tga"), crateLocation);
+	objects.push_back(&crate);
+	Mesh thingMesh = loadOBJ(MODEL("clanger.obj"));
+	clanger = createDisplayObject(thingMesh, TEXTURE("clanger.tga"), clangerLocation);
+	objects.push_back(&clanger);
 }
+
+// Main loop methods //
 
 void drawObject(DisplayObject* obj) {
 	glBindVertexArray(obj->vao);
@@ -253,10 +272,6 @@ void drawObject(DisplayObject* obj) {
 	glBindTexture(GL_TEXTURE_2D, obj->tex);
 
 	glDrawElements(GL_TRIANGLES, obj->numIndices, GL_UNSIGNED_INT, NULL);
-}
-
-void scene() {
-	setDisplayObject(&object);
 }
 
 bool processInput(void) {
@@ -294,8 +309,6 @@ int main(void) {
 
 	glfwSetWindowTitle(WINDOW_TITLE);
 
-	setupGeometry();
-	checkForError("After geometry setup");
 	setupShaders();
 	checkForError("After shader setup");
 
@@ -307,6 +320,7 @@ int main(void) {
 	glDepthMask(GL_TRUE);
 
 	scene();
+	checkForError("After scene setup");
 
 	// Main loop
 	printf("Entering main loop.\n");
@@ -337,7 +351,10 @@ int main(void) {
 			double currentTime = glfwGetTime();
 			double timePassed = currentTime - lastTime;
 			currentRotation += ROTATION_SPEED * timePassed;
-			object.mvpSet = createMVP(0.0f, 0.0f, 0.0f, currentRotation);
+			for (unsigned int i = 0; i < objects.size(); i++) {
+				objects[i]->rotation = glm::vec3(0, currentRotation, 0);
+				updateMVP(*objects[i]);
+			}
 			lastTime = currentTime;
 		}
 	} while (!shouldExit && glfwGetWindowParam(GLFW_OPENED));
