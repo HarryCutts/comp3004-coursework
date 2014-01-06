@@ -190,20 +190,20 @@ void updateMVP(DisplayObject &object) {
 	glm::mat4 rotateX = glm::rotate(glm::mat4(1.), object.rotation[0], glm::vec3(1, 0, 0));
 	glm::mat4 rotateY = glm::rotate(glm::mat4(1.), object.rotation[1], glm::vec3(0, 1, 0));
 	glm::mat4 rotateZ = glm::rotate(glm::mat4(1.), object.rotation[2], glm::vec3(0, 0, 1));
+	glm::mat4 scale = glm::scale(glm::mat4(1.), glm::vec3(object.scale, object.scale, object.scale));
 	glm::mat4 translate  = glm::translate(glm::mat4(1.), object.location);
-	set.m = translate * rotateZ * rotateY * rotateX;
+	set.m = translate * scale * rotateZ * rotateY * rotateX;
 
 	// TODO: scale
 
-	set.v = glm::lookAt(glm::vec3(5,5,5), glm::vec3(0,0,0), glm::vec3(0,1,0));
+	set.v = glm::lookAt(glm::vec3(10,10,10), glm::vec3(0,0,0), glm::vec3(0,1,0));
 	set.p = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
 
 	set.mvp = set.p * set.v * set.m;
 	object.mvpSet = set;
 }
 
-DisplayObject createDisplayObject(const Mesh &mesh, const char *texturePath,
-			glm::vec3 location, glm::vec3 rotation) {
+DisplayObject createDisplayObject(const Mesh &mesh, const char *texturePath) {
 	// Create a VAO
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
@@ -226,30 +226,29 @@ DisplayObject createDisplayObject(const Mesh &mesh, const char *texturePath,
 	obj.numVertices = mesh.vertices.size();
 	obj.numIndices  = mesh.indices.size();
 	obj.tex = loadTGA(texturePath);  // TODO: prevent textures being loaded twice
-	obj.location = location;
-	obj.rotation = rotation;
-	updateMVP(obj);
+	obj.location = glm::vec3(0., 0., 0.);
+	obj.rotation = glm::vec3(0., 0., 0.);
+	obj.scale = 1;
 
 	return obj;
 }
 
-DisplayObject createDisplayObject(const Mesh &mesh, const char *texturePath,
-			glm::vec3 location) {
-	return createDisplayObject(mesh, texturePath, location, glm::vec3(0, 0, 0));
-}
-
-static DisplayObject crate, clanger;
+static DisplayObject landscape, crate, clanger;
 
 void scene() {
-	glm::vec3 crateLocation   = glm::vec3(2.0f, 2.0f, 0.0f);
 	glm::vec3 clangerLocation = glm::vec3(-2.0f, -2.0f, 0.0f);
 
 	objects.clear();
-	Mesh objectMesh = loadOBJ(MODEL("crate.obj"));
-	crate = createDisplayObject(objectMesh, TEXTURE("crate.tga"), crateLocation);
-	objects.push_back(&crate);
-	Mesh thingMesh = loadOBJ(MODEL("clanger.obj"));
-	clanger = createDisplayObject(thingMesh, TEXTURE("clanger.tga"), clangerLocation);
+	Mesh landscapeMesh = loadOBJ(MODEL("landscape.obj"));
+	landscape = createDisplayObject(landscapeMesh, TEXTURE("landscape.tga"));
+	landscape.scale = 33;
+	updateMVP(landscape);
+	objects.push_back(&landscape);
+
+	Mesh clangerMesh = loadOBJ(MODEL("clanger.obj"));
+	clanger = createDisplayObject(clangerMesh, TEXTURE("clanger.tga"));
+	clanger.location = clangerLocation;
+	updateMVP(clanger);
 	objects.push_back(&clanger);
 }
 
