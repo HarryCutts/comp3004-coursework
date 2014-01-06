@@ -1,0 +1,20 @@
+Models
+======
+The models which I used are all my own, made with Blender. I have made my clanger model available to my fellow students under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 license. It is accompanied by instructions to acknowledge me as the source in the user's `credits.txt` file.
+
+Textures
+========
+
+Terrain
+-------
+Rock: *rocky sand texture* by Dmitriy Chugai, <http://texturelib.com/texture/?path=/Textures/soil/sand/soil_sand_0065>.
+Hangar doors: *Sculpture bronze texture* by Titus Tscharntke, <http://www.copyright-free-images.com/full-image/textures-and-patterns-copyright-free-images/metal-texture-copyright-free-images/sculpture-bronze-texture.jpg-royalty-free-stock-image.html>.
+
+Clanger
+-------
+The texture for the clanger was purely my own work, created in GIMP. It has been distributed with the clanger model, under the same terms.
+
+Spaceship
+---------
+Skids: *Free Metal Plate Texture* by Mitch Featherston, <http://www.thepublicdomain.net/2013/05/free-metal-plate-texture.html>.
+The bit in front of the rocket engine: *Free Metal Texture 6* by Sahil Sehgal, <http://allroundnews.com/free-metal-textures-and-leather-patterns/>.
