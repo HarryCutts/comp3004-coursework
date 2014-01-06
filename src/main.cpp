@@ -23,6 +23,10 @@
 
 #define LIGHT_POSITION 5.f, 5.f, 3.f
 
+#define CAMERA_START_POSITION glm::vec3(10, 10, 10)
+#define CAMERA_ACCELERATION 2
+#define CAMERA_ROTATION_SPEED 0.4
+
 struct MVPSet {
 	glm::mat4 mvp;
 	glm::mat4 m;
@@ -41,13 +45,18 @@ struct DisplayObject {
 	glm::vec3 rotation;
 	GLfloat scale;
 
-	MVPSet mvpSet;
+	glm::mat4 modelMatrix;
 };
 
 static GLuint prgNormals;
 static GLuint prgShaded;
 
 static std::vector<DisplayObject*> objects;
+
+static GLfloat cameraSpeed = 0;
+static glm::vec3 cameraPosition = CAMERA_START_POSITION;
+static GLfloat cameraYaw = 0, cameraPitch = 0;
+static glm::mat4 VP, V, P;
 
 static bool showNormals = false;
 
@@ -179,23 +188,15 @@ static GLuint createVertexAttribVBO(GLuint index, GLint numComponents, const std
 	return vbo;
 }
 
-void updateMVP(DisplayObject &object) {
-	MVPSet set;
-
+void updateModelMatrix(DisplayObject &object) {
 	glm::mat4 rotateX = glm::rotate(glm::mat4(1.), object.rotation[0], glm::vec3(1, 0, 0));
 	glm::mat4 rotateY = glm::rotate(glm::mat4(1.), object.rotation[1], glm::vec3(0, 1, 0));
 	glm::mat4 rotateZ = glm::rotate(glm::mat4(1.), object.rotation[2], glm::vec3(0, 0, 1));
 	glm::mat4 scale = glm::scale(glm::mat4(1.), glm::vec3(object.scale, object.scale, object.scale));
 	glm::mat4 translate  = glm::translate(glm::mat4(1.), object.location);
-	set.m = translate * scale * rotateZ * rotateY * rotateX;
+	glm::mat4 matrix = translate * scale * rotateZ * rotateY * rotateX;
 
-	// TODO: scale
-
-	set.v = glm::lookAt(glm::vec3(10,10,10), glm::vec3(0,0,0), glm::vec3(0,1,0));
-	set.p = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
-
-	set.mvp = set.p * set.v * set.m;
-	object.mvpSet = set;
+	object.modelMatrix = matrix;
 }
 
 DisplayObject createDisplayObject(const Mesh &mesh, const char *texturePath) {
@@ -228,6 +229,29 @@ DisplayObject createDisplayObject(const Mesh &mesh, const char *texturePath) {
 	return obj;
 }
 
+void moveCamera(float timePassed) {
+	// Code from http://opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/
+	glm::vec3 direction = glm::vec3(
+		cos(cameraPitch) * sin(cameraYaw),
+		sin(cameraPitch),
+		cos(cameraPitch) * cos(cameraYaw)
+	);
+	glm::vec3 right = glm::vec3(
+		sin(cameraYaw - PI/2.0f),
+		0,
+		cos(cameraYaw - PI/2.0f)
+	);
+	glm::vec3 up = glm::cross(right, direction);
+	glm::vec3 movement = direction * cameraSpeed * timePassed;
+	cameraPosition += movement;
+
+	glm::vec3 target = cameraPosition + direction;
+	V = glm::lookAt(cameraPosition, target, up);
+	P = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
+
+	VP = P * V;
+}
+
 static DisplayObject landscape, crate, clanger;
 
 void scene() {
@@ -237,13 +261,13 @@ void scene() {
 	Mesh landscapeMesh = loadOBJ(MODEL("landscape.obj"));
 	landscape = createDisplayObject(landscapeMesh, TEXTURE("landscape.tga"));
 	landscape.scale = 33;
-	updateMVP(landscape);
+	updateModelMatrix(landscape);
 	objects.push_back(&landscape);
 
 	Mesh clangerMesh = loadOBJ(MODEL("clanger.obj"));
 	clanger = createDisplayObject(clangerMesh, TEXTURE("clanger.tga"));
 	clanger.location = clangerLocation;
-	updateMVP(clanger);
+	updateModelMatrix(clanger);
 	objects.push_back(&clanger);
 }
 
@@ -252,15 +276,17 @@ void scene() {
 void drawObject(DisplayObject* obj) {
 	glBindVertexArray(obj->vao);
 
-	// Set the MVPs
+	// Set the MVP
+	glm::mat4 MVP = VP * obj->modelMatrix;
+
 	GLuint uniMVP = glGetUniformLocation(prgShaded, "MVP"),
 	       uniM   = glGetUniformLocation(prgShaded, "M"),
 	       uniV   = glGetUniformLocation(prgShaded, "V"),
 	       uniP   = glGetUniformLocation(prgShaded, "P");
-	glUniformMatrix4fv(uniMVP, 1, GL_FALSE, &(obj->mvpSet.mvp[0][0]));
-	glUniformMatrix4fv(uniM,   1, GL_FALSE, &(obj->mvpSet.m[0][0]));
-	glUniformMatrix4fv(uniV,   1, GL_FALSE, &(obj->mvpSet.v[0][0]));
-	glUniformMatrix4fv(uniP,   1, GL_FALSE, &(obj->mvpSet.p[0][0]));
+	glUniformMatrix4fv(uniMVP, 1, GL_FALSE, &MVP[0][0]);
+	glUniformMatrix4fv(uniM,   1, GL_FALSE, &(obj->modelMatrix[0][0]));
+	glUniformMatrix4fv(uniV,   1, GL_FALSE, &V[0][0]);
+	glUniformMatrix4fv(uniP,   1, GL_FALSE, &P[0][0]);
 
 	// Set the texture
 	glBindTexture(GL_TEXTURE_2D, obj->tex);
@@ -270,12 +296,38 @@ void drawObject(DisplayObject* obj) {
 
 static bool nPressed = false;
 
-bool processInput(void) {
+bool processInput(float timePassed) {
 	bool n = glfwGetKey(static_cast<int>('N'));
 	if (n && !nPressed) {
 		showNormals = !showNormals;
 	}
 	nPressed = n;
+
+	// Camera movement (adapted from http://opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/)
+	// Speed
+	if (glfwGetKey(GLFW_KEY_UP) == GLFW_PRESS) {
+		cameraSpeed += CAMERA_ACCELERATION * timePassed;
+	}
+	if (glfwGetKey(GLFW_KEY_DOWN) == GLFW_PRESS) {
+		cameraSpeed -= CAMERA_ACCELERATION * timePassed;
+		if (cameraSpeed < 0) cameraSpeed = 0;
+	}
+
+	// Yaw
+	if (glfwGetKey(GLFW_KEY_LEFT) == GLFW_PRESS) {
+		cameraYaw += CAMERA_ROTATION_SPEED * timePassed;
+	}
+	if (glfwGetKey(GLFW_KEY_RIGHT) == GLFW_PRESS) {
+		cameraYaw -= CAMERA_ROTATION_SPEED * timePassed;
+	}
+
+	// Pitch
+	if (glfwGetKey(GLFW_KEY_HOME) == GLFW_PRESS) {
+		cameraPitch += CAMERA_ROTATION_SPEED * timePassed;
+	}
+	if (glfwGetKey(GLFW_KEY_END) == GLFW_PRESS) {
+		cameraPitch -= CAMERA_ROTATION_SPEED * timePassed;
+	}
 
 	return (glfwGetKey(GLFW_KEY_ESC) || glfwGetKey(static_cast<int>('Q')));
 }
@@ -313,11 +365,12 @@ int main(void) {
 	glDepthMask(GL_TRUE);
 
 	scene();
+	moveCamera(0);
 	checkForError("After scene setup");
 
 	// Main loop
 	printf("Entering main loop.\n");
-	//double lastTime = glfwGetTime();
+	double lastTime = glfwGetTime();
 	bool shouldExit = false;
 	do {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -325,7 +378,7 @@ int main(void) {
 			drawObject(objects[i]);
 		}
 
-		if (showNormals) {
+		/*if (showNormals) {
 			glUseProgram(prgNormals);
 			GLuint uniMVP = glGetUniformLocation(prgNormals, "MVP");
 			for (unsigned int i = 0; i < objects.size(); i++) {
@@ -333,22 +386,23 @@ int main(void) {
 				glDrawArrays(GL_POINTS, 0, objects[i]->numVertices);
 			}
 			glUseProgram(prgShaded);
-		}
+		}*/
 
 		glfwSwapBuffers();
 		checkForError("main loop");
 
-		shouldExit = processInput();
+		double currentTime = glfwGetTime();
+		float timePassed = float(currentTime - lastTime);
 
+		shouldExit = processInput(timePassed);
+		moveCamera(timePassed);
 		/*if (rotating) {
-			double currentTime = glfwGetTime();
-			double timePassed = currentTime - lastTime;
 			currentRotation += ROTATION_SPEED * timePassed;
 			for (unsigned int i = 0; i < objects.size(); i++) {
 				objects[i]->rotation = glm::vec3(0, currentRotation, 0);
-				updateMVP(*objects[i]);
+				updateModelMatrix(*objects[i]);
 			}
-			lastTime = currentTime;
 		}*/
+		lastTime = currentTime;
 	} while (!shouldExit && glfwGetWindowParam(GLFW_OPENED));
 }
