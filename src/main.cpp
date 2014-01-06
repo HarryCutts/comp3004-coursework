@@ -23,8 +23,6 @@
 
 #define LIGHT_POSITION 5.f, 5.f, 3.f
 
-#define ROTATION_SPEED -8
-
 struct MVPSet {
 	glm::mat4 mvp;
 	glm::mat4 m;
@@ -52,9 +50,6 @@ static GLuint prgShaded;
 static std::vector<DisplayObject*> objects;
 
 static bool showNormals = false;
-
-static bool rotating = false;
-static GLfloat currentRotation = 0.0f;
 
 GLuint createShader(GLenum type, const char* path) {
 	GLuint shdShader = glCreateShader(type);
@@ -273,15 +268,9 @@ void drawObject(DisplayObject* obj) {
 	glDrawElements(GL_TRIANGLES, obj->numIndices, GL_UNSIGNED_INT, NULL);
 }
 
-static bool rPressed = false, nPressed = false;
+static bool nPressed = false;
 
 bool processInput(void) {
-	bool r = glfwGetKey(static_cast<int>('R'));
-	if (r && !rPressed) {
-		rotating = !rotating;
-	}
-	rPressed = r;
-
 	bool n = glfwGetKey(static_cast<int>('N'));
 	if (n && !nPressed) {
 		showNormals = !showNormals;
@@ -328,7 +317,7 @@ int main(void) {
 
 	// Main loop
 	printf("Entering main loop.\n");
-	double lastTime = glfwGetTime();
+	//double lastTime = glfwGetTime();
 	bool shouldExit = false;
 	do {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -351,7 +340,7 @@ int main(void) {
 
 		shouldExit = processInput();
 
-		if (rotating) {
+		/*if (rotating) {
 			double currentTime = glfwGetTime();
 			double timePassed = currentTime - lastTime;
 			currentRotation += ROTATION_SPEED * timePassed;
@@ -360,6 +349,6 @@ int main(void) {
 				updateMVP(*objects[i]);
 			}
 			lastTime = currentTime;
-		}
+		}*/
 	} while (!shouldExit && glfwGetWindowParam(GLFW_OPENED));
 }
