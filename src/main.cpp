@@ -255,7 +255,7 @@ void moveCamera(float timePassed) {
 static DisplayObject landscape, crate, clanger;
 
 void scene() {
-	glm::vec3 clangerLocation = glm::vec3(-2.0f, -2.0f, 0.0f);
+	glm::vec3 clangerLocation = glm::vec3(4.29, -1.0, -30);
 
 	objects.clear();
 	Mesh landscapeMesh = loadOBJ(MODEL("landscape.obj"));
@@ -267,6 +267,7 @@ void scene() {
 	Mesh clangerMesh = loadOBJ(MODEL("clanger.obj"));
 	clanger = createDisplayObject(clangerMesh, TEXTURE("clanger.tga"));
 	clanger.location = clangerLocation;
+	clanger.rotation = glm::vec3(0, -90, 0);
 	updateModelMatrix(clanger);
 	objects.push_back(&clanger);
 }
