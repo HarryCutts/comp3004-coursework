@@ -11,12 +11,15 @@
 
 #ifdef ASSET_DIRECTORIES 
 	#define SEPARATOR "/"
+
+	#define SHADER(name)  ("shaders"  SEPARATOR name)
+	#define TEXTURE(name) ("textures" SEPARATOR name)
+	#define MODEL(name)   ("models"   SEPARATOR name)
 #else
-	#define SEPARATOR "_"
+	#define SHADER(name)  (name)
+	#define TEXTURE(name) (name)
+	#define MODEL(name)   (name)
 #endif
 
-#define SHADER(name)  ("shaders"  SEPARATOR name)
-#define TEXTURE(name) ("textures" SEPARATOR name)
-#define MODEL(name)   ("models"   SEPARATOR name)
 
 #endif
