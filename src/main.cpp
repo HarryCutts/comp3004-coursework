@@ -210,30 +210,32 @@ bool processInput(float timePassed) {
 		startTour();
 	}
 
-	// Camera movement (adapted from http://opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/)
-	// Speed
-	if (glfwGetKey(GLFW_KEY_UP) == GLFW_PRESS) {
-		cameraSpeed += CAMERA_ACCELERATION * timePassed;
-	}
-	if (glfwGetKey(GLFW_KEY_DOWN) == GLFW_PRESS) {
-		cameraSpeed -= CAMERA_ACCELERATION * timePassed;
-		if (cameraSpeed < 0) cameraSpeed = 0;
-	}
+	if (!isTourRunning()) {
+		// Camera movement (adapted from http://opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/)
+		// Speed
+		if (glfwGetKey(GLFW_KEY_UP) == GLFW_PRESS) {
+			cameraSpeed += CAMERA_ACCELERATION * timePassed;
+		}
+		if (glfwGetKey(GLFW_KEY_DOWN) == GLFW_PRESS) {
+			cameraSpeed -= CAMERA_ACCELERATION * timePassed;
+			if (cameraSpeed < 0) cameraSpeed = 0;
+		}
 
-	// Yaw
-	if (glfwGetKey(GLFW_KEY_LEFT) == GLFW_PRESS) {
-		camera.rotation[1] += CAMERA_ROTATION_SPEED * timePassed;
-	}
-	if (glfwGetKey(GLFW_KEY_RIGHT) == GLFW_PRESS) {
-		camera.rotation[1] -= CAMERA_ROTATION_SPEED * timePassed;
-	}
+		// Yaw
+		if (glfwGetKey(GLFW_KEY_LEFT) == GLFW_PRESS) {
+			camera.rotation[1] += CAMERA_ROTATION_SPEED * timePassed;
+		}
+		if (glfwGetKey(GLFW_KEY_RIGHT) == GLFW_PRESS) {
+			camera.rotation[1] -= CAMERA_ROTATION_SPEED * timePassed;
+		}
 
-	// Pitch
-	if (glfwGetKey(GLFW_KEY_HOME) == GLFW_PRESS) {
-		camera.rotation[0] += CAMERA_ROTATION_SPEED * timePassed;
-	}
-	if (glfwGetKey(GLFW_KEY_END) == GLFW_PRESS) {
-		camera.rotation[0] -= CAMERA_ROTATION_SPEED * timePassed;
+		// Pitch
+		if (glfwGetKey(GLFW_KEY_HOME) == GLFW_PRESS) {
+			camera.rotation[0] += CAMERA_ROTATION_SPEED * timePassed;
+		}
+		if (glfwGetKey(GLFW_KEY_END) == GLFW_PRESS) {
+			camera.rotation[0] -= CAMERA_ROTATION_SPEED * timePassed;
+		}
 	}
 
 	return (glfwGetKey(GLFW_KEY_ESC) || glfwGetKey(static_cast<int>('Q')));
