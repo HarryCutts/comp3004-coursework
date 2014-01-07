@@ -130,9 +130,78 @@ bool Motion::perform(float timePassed) {
 	return secondsComplete >= duration;
 }
 
+void checkForFinish(void);
+
+struct MotionSequence {
+	std::vector<Motion> motions;
+	unsigned int index;
+	bool finished;
+
+	public:
+		MotionSequence(void);
+		void startMotion(unsigned int newIndex);
+		void nextMotion(void);
+};
+
+MotionSequence::MotionSequence(void) { finished = false; }
+
+void MotionSequence::startMotion(unsigned int newIndex) {
+	index = newIndex;
+	motions[index].start();
+}
+
+void MotionSequence::nextMotion(void) {
+	if (index + 1 < motions.size()) {
+		startMotion(index + 1);
+	} else {
+		finished = true;
+		checkForFinish();
+	}
+}
+
+static std::vector<MotionSequence> sequences;
+static bool tourRunning = false;
+
+void checkForFinish(void) {
+	bool finished = true;
+	for (unsigned int i = 0; i < sequences.size(); i++) {
+		if (!sequences[i].finished) {
+			finished = false;
+			break;
+		}
+	}
+	if (finished) {
+		printf("Tour finished.\n");
+		tourRunning = false;
+	}
+}
+
+void startTour(void) {
+	tourRunning = true;
+	for (unsigned int i = 0; i < sequences.size(); i++) {
+		sequences[i].startMotion(0);
+	}
+}
+
+bool isTourRunning(void) {
+	return tourRunning;
+}
+
+void animate(float timePassed) {
+	if (tourRunning) {
+		for (unsigned int i = 0; i < sequences.size(); i++) {
+			if (sequences[i].finished) continue;
+			bool motionFinished = sequences[i].motions[sequences[i].index].perform(timePassed);
+
+			if (motionFinished) {
+				sequences[i].nextMotion();
+			}
+		}
+	}
+}
+
 static DisplayObject *camera;
 static DisplayObject landscape, spaceship, clanger;
-static std::vector<Motion> motions;
 
 void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObject) {
 	glm::vec3 spaceshipEndLocation = glm::vec3(10, 0, 12);
@@ -166,11 +235,11 @@ void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObjec
 	updateModelMatrix(clanger);
 	objects.push_back(&clanger);
 
-	// Animation //
+	// Tour Animation: Models //
 	glm::vec3 zero = glm::vec3(0, 0, 0);
 	glm::vec3 spaceshipStartLocation = glm::vec3(51.2, 80.0, -320);
 
-	Motion cameraSet(camera, 0, glm::vec3(18.940031, 2.809827, -32.122253), glm::vec3(-0.050559, -26.546928, 0));
+	MotionSequence modelSequence;
 	Motion spaceshipSet(&spaceship, 0, spaceshipStartLocation, glm::vec3(15, 180, 0));
 
 	Motion clangerMotion1(&clanger, 2, zero, glm::vec3(0, 75, 0));
@@ -185,51 +254,24 @@ void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObjec
 	Motion clangerEndMotion1(&clanger, 0.01, zero, glm::vec3(0, -150, 0));
 	Motion clangerEndMotion2(&clanger, 5, glm::vec3(0, 2.5, 0), zero);
 
-	motions.push_back(cameraSet);
-	motions.push_back(spaceshipSet);
-	motions.push_back(clangerMotion1);
-	motions.push_back(clangerMotion2);
-	motions.push_back(clangerMotion3);
-	motions.push_back(clangerPause);
-	motions.push_back(clangerMotion4);
-	motions.push_back(clangerMotion5);
-	motions.push_back(spaceshipMotion);
-	motions.push_back(clangerEndMotion1);
-	motions.push_back(clangerEndMotion2);
+	modelSequence.motions.push_back(spaceshipSet);
+	modelSequence.motions.push_back(clangerMotion1);
+	modelSequence.motions.push_back(clangerMotion2);
+	modelSequence.motions.push_back(clangerMotion3);
+	modelSequence.motions.push_back(clangerPause);
+	modelSequence.motions.push_back(clangerMotion4);
+	modelSequence.motions.push_back(clangerMotion5);
+	modelSequence.motions.push_back(spaceshipMotion);
+	modelSequence.motions.push_back(clangerEndMotion1);
+	modelSequence.motions.push_back(clangerEndMotion2);
+
+	sequences.push_back(modelSequence);
+
+	// Tour Animation: Camera //
+	MotionSequence cameraSequence;
+	Motion cameraSet1(camera, 0, glm::vec3(18.940031, 2.809827, -32.122253), glm::vec3(-0.050559, -26.546928, 0));
+
+	cameraSequence.motions.push_back(cameraSet1);
+	sequences.push_back(cameraSequence);
 }
 
-static bool tourRunning = false;
-static unsigned int motionIndex;
-
-static void startMotion(unsigned int index) {
-	motionIndex = index;
-	motions[motionIndex].start();
-}
-
-static void nextMotion(void) {
-	if (motionIndex + 1 < motions.size()) {
-		startMotion(motionIndex + 1);
-	} else {
-		printf("Tour finished.\n");
-		tourRunning = false;
-	}
-}
-
-void startTour(void) {
-	tourRunning = true;
-	startMotion(0);
-}
-
-bool isTourRunning(void) {
-	return tourRunning;
-}
-
-void animate(float timePassed) {
-	if (tourRunning) {
-		bool motionFinished = motions[motionIndex].perform(timePassed);
-
-		if (motionFinished) {
-			nextMotion();
-		}
-	}
-}
