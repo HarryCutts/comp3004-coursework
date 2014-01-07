@@ -1,3 +1,8 @@
+Code
+====
+
+There are comments in the code giving links to tutorials from which those lines were adapted (mostly <http://opengl-tutorial.org/beginners-tutorials/>). `src/glm.c` and `include/glm.h` contain Nate Robins' Wavefront OBJ reader and writer, and have been slightly modified to function with GLFW2.
+
 Models
 ======
 
