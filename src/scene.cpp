@@ -18,6 +18,10 @@
 #define CAMERA_START_YAW -23.1
 #define CAMERA_START_PITCH 0.13
 
+#define GROUND_SHAKE_MAGNITUDE 0.5
+#define GROUND_SHAKE_DURATION 0.05
+#define NUM_GROUND_SHAKES 3
+
 void updateModelMatrix(DisplayObject &object) {
 	glm::mat4 rotateX = glm::rotate(glm::mat4(1.), object.rotation[0], glm::vec3(1, 0, 0));
 	glm::mat4 rotateY = glm::rotate(glm::mat4(1.), object.rotation[1], glm::vec3(0, 1, 0));
@@ -253,44 +257,67 @@ void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObjec
 	Motion clangerMotion1(&clanger, 2, zero, glm::vec3(0, 75, 0));
 	Motion clangerMotion2(&clanger, 4, zero, glm::vec3(0, -150, 0));
 	Motion clangerMotion3(&clanger, 3, zero, glm::vec3(0, 150, 0));
-	Motion clangerPause(&clanger, 1);
-	Motion clangerMotion4(&clanger, 0.3, glm::vec3(0, 0.4, 0), zero);
-	Motion clangerMotion5(&clanger, 0.3, glm::vec3(0, -3.4, 0), zero);
+	Motion clangerPause1(&clanger, 1);
+	Motion clangerMotion4(&clanger, 0.1, glm::vec3(0, 0.4, 0), zero);
+	Motion clangerMotion5(&clanger, 0.1, glm::vec3(0, -3.4, 0), zero);
+	Motion clangerPause2(&clanger, 0.4);
 
 	Motion spaceshipMotion(&spaceship, 10, spaceshipPath, spaceshipRotationPath);
+	Motion groundShakeUp(&landscape, GROUND_SHAKE_DURATION, glm::vec3(0, GROUND_SHAKE_MAGNITUDE, 0), zero);
+	Motion groundShakeDown(&landscape, GROUND_SHAKE_DURATION, glm::vec3(0, -GROUND_SHAKE_MAGNITUDE, 0), zero);
+	Motion groundShakePause(&landscape, 1);
 
-	Motion clangerEndMotion1(&clanger, 0.01, zero, glm::vec3(0, -150, 0));
-	Motion clangerEndMotion2(&clanger, 5, glm::vec3(0, 2.5, 0), zero);
+	Motion clangerEndSet1(&clanger, 0, clangerLocation - glm::vec3(0, 3, 0), glm::vec3(0, -75, 0));
+	Motion clangerEndMotion1(&clanger, 5, glm::vec3(0, 3, 0), zero);
 
 	modelSequence.motions.push_back(spaceshipSet);
 	modelSequence.motions.push_back(clangerMotion1);
 	modelSequence.motions.push_back(clangerMotion2);
 	modelSequence.motions.push_back(clangerMotion3);
-	modelSequence.motions.push_back(clangerPause);
+	modelSequence.motions.push_back(clangerPause1);
 	modelSequence.motions.push_back(clangerMotion4);
 	modelSequence.motions.push_back(clangerMotion5);
+	modelSequence.motions.push_back(clangerPause2);
 	modelSequence.motions.push_back(spaceshipMotion);
+	for (unsigned int i = 0; i < NUM_GROUND_SHAKES; i++) {
+		modelSequence.motions.push_back(groundShakeDown);
+		modelSequence.motions.push_back(groundShakeUp);
+	}
+	modelSequence.motions.push_back(groundShakePause);
+	modelSequence.motions.push_back(clangerEndSet1);
 	modelSequence.motions.push_back(clangerEndMotion1);
-	modelSequence.motions.push_back(clangerEndMotion2);
 
 	sequences.push_back(modelSequence);
 
 	// Tour Animation: Camera //
 	MotionSequence cameraSequence;
-	Motion cameraSet1(camera, 0, glm::vec3(18.940031, 2.809827, -32.122253), glm::vec3(-0.050559, -26.546928, 0));
+	Motion clangerView1(camera, 0, glm::vec3(18.940031, 2.809827, -32.122253), glm::vec3(-0.050559, -26.546928, 0));
 	Motion cameraPause1(camera, 10.6);
+
+		// (spaceship starts moving)
 	Motion cameraSet2(camera, 0, glm::vec3(27.815826, 6.820219, -65.316856), glm::vec3(0.183383, -27.983179, 0));
 	Motion cameraPause2(camera, 5);
 	Motion cameraSet3(camera, 0, spaceshipStartLocation + (0.5f * spaceshipPath) + glm::vec3(0, -3, 0),
 			(float)(PI/180) * (spaceshipStartRotation - glm::vec3(0, 180, 0)));
 	Motion cameraMotion1(camera, 4, 0.35f * spaceshipPath, 0.35f * (float)(PI/180) * spaceshipRotationPath);
+	Motion cameraPause3(camera, 1);
+		// (spaceship hits, ground starts shaking)
+	Motion cameraSet4(camera, 0, glm::vec3(-27.063541, 4.131834, -82.903534), glm::vec3(-0.057055, -28.964642, 0));
+			// View of hangar doors
+	Motion groundShakeCameraPause(camera, GROUND_SHAKE_DURATION * NUM_GROUND_SHAKES + 1);
+	Motion clangerView2(camera, 0, glm::vec3(38.303978, 4.071294, 1.528273), glm::vec3(-0.070362, -27.034525, 0));
+			// View of clanger and crashed ship
 
-	cameraSequence.motions.push_back(cameraSet1);
+	cameraSequence.motions.push_back(clangerView1);
 	cameraSequence.motions.push_back(cameraPause1);
 	cameraSequence.motions.push_back(cameraSet2);
 	cameraSequence.motions.push_back(cameraPause2);
 	cameraSequence.motions.push_back(cameraSet3);
 	cameraSequence.motions.push_back(cameraMotion1);
+	cameraSequence.motions.push_back(cameraPause3);
+	cameraSequence.motions.push_back(cameraSet4);
+	cameraSequence.motions.push_back(groundShakeCameraPause);
+	cameraSequence.motions.push_back(clangerView2);
 	sequences.push_back(cameraSequence);
 }
 
