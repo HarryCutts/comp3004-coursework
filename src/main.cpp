@@ -24,7 +24,7 @@
 
 #define LIGHT_POSITION 310.f, 150.f, 150.f
 
-#define CAMERA_ACCELERATION 2
+#define CAMERA_ACCELERATION 6
 #define CAMERA_ROTATION_SPEED 0.4
 
 static GLuint prgNormals;
