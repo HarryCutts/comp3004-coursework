@@ -18,8 +18,8 @@
 
 #define PI 3.14159265
 
-#define WINDOW_WIDTH  800
-#define WINDOW_HEIGHT 600
+#define WINDOW_WIDTH  1280
+#define WINDOW_HEIGHT 1024
 #define WINDOW_TITLE  "Graphics coursework 3, Harry Cutts"
 
 #define LIGHT_POSITION 310.f, 150.f, 150.f
@@ -142,7 +142,7 @@ void moveCamera(float timePassed) {
 
 	glm::vec3 target = camera.location + direction;
 	V = glm::lookAt(camera.location, target, up);
-	P = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 1000.0f);
+	P = glm::perspective(45.0f, (float)WINDOW_WIDTH / WINDOW_HEIGHT, 0.1f, 1000.0f);
 
 	VP = P * V;
 }
