@@ -77,6 +77,9 @@ static DisplayObject createDisplayObject(const Mesh &mesh, const char *texturePa
 struct Motion {
 	DisplayObject *target;
 
+	bool setLocation;
+	bool setRotation;
+
 	glm::vec3 startLocation;
 	glm::vec3 startRotation;
 
@@ -86,7 +89,26 @@ struct Motion {
 	float duration;
 
 	float secondsComplete;
+	public:
+		Motion(DisplayObject*, float);
+		Motion(DisplayObject *myTarget, float myDuration, glm::vec3 myMoveBy, glm::vec3 myRotateBy);
 };
+
+Motion::Motion(DisplayObject *myTarget, float myDuration) {
+	target = myTarget;
+	duration = myDuration;
+	setLocation = false;
+	setRotation = false;
+}
+
+Motion::Motion(DisplayObject *myTarget, float myDuration, glm::vec3 myMoveBy, glm::vec3 myRotateBy) {
+	target = myTarget;
+	duration = myDuration;
+	setLocation = false;
+	setRotation = false;
+	moveBy = myMoveBy;
+	rotateBy = myRotateBy;
+}
 
 static DisplayObject landscape, spaceship, clanger;
 static std::vector<Motion> motions;
@@ -114,21 +136,42 @@ void setupScene(std::vector<DisplayObject*> &objects) {
 	Mesh clangerMesh = loadOBJ(MODEL("clanger.obj"));
 	clanger = createDisplayObject(clangerMesh, TEXTURE("clanger.tga"));
 	clanger.location = clangerLocation;
-	clanger.rotation = glm::vec3(0, -90, 0);
+	clanger.rotation = glm::vec3(0, 0, 0);
 	updateModelMatrix(clanger);
 	objects.push_back(&clanger);
 
 	// Animation //
-	Motion spaceshipMotion;
-	spaceshipMotion.target = &spaceship;
-	spaceshipMotion.startLocation = glm::vec3(51.2, 80.0, -320);
-	spaceshipMotion.startRotation = glm::vec3(15, 180, 0);
+	glm::vec3 zero = glm::vec3(0, 0, 0);
 
-	spaceshipMotion.moveBy = spaceshipEndLocation - spaceshipMotion.startLocation;
-	spaceshipMotion.rotateBy = glm::vec3(-18, 0, 0);
+	// TODO: add a special case for motions with duration 0
+	Motion spaceshipSet(&spaceship, 0.01);
+	spaceshipSet.setLocation = true;
+	spaceshipSet.setRotation = true;
+	spaceshipSet.startLocation = glm::vec3(51.2, 80.0, -320);
+	spaceshipSet.startRotation = glm::vec3(15, 180, 0);
 
-	spaceshipMotion.duration = 5;
+	Motion clangerMotion1(&clanger, 2, zero, glm::vec3(0, 75, 0));
+	Motion clangerMotion2(&clanger, 4, zero, glm::vec3(0, -150, 0));
+	Motion clangerMotion3(&clanger, 3, zero, glm::vec3(0, 150, 0));
+	Motion clangerPause(&clanger, 1);
+	Motion clangerMotion4(&clanger, 0.3, glm::vec3(0, 0.4, 0), zero);
+	Motion clangerMotion5(&clanger, 0.3, glm::vec3(0, -3.4, 0), zero);
+
+	Motion spaceshipMotion(&spaceship, 5, spaceshipEndLocation - spaceshipSet.startLocation, glm::vec3(-18, 0, 0));
+
+	Motion clangerEndMotion1(&clanger, 0.01, zero, glm::vec3(0, -150, 0));
+	Motion clangerEndMotion2(&clanger, 5, glm::vec3(0, 2.5, 0), zero);
+
+	motions.push_back(spaceshipSet);
+	motions.push_back(clangerMotion1);
+	motions.push_back(clangerMotion2);
+	motions.push_back(clangerMotion3);
+	motions.push_back(clangerPause);
+	motions.push_back(clangerMotion4);
+	motions.push_back(clangerMotion5);
 	motions.push_back(spaceshipMotion);
+	motions.push_back(clangerEndMotion1);
+	motions.push_back(clangerEndMotion2);
 }
 
 static bool tourRunning = false;
@@ -137,9 +180,11 @@ static unsigned int motionIndex;
 static void startMotion(unsigned int index) {
 	motionIndex = index;
 	Motion &motion = motions[index];
-	motion.target->location = motion.startLocation;
-	motion.target->rotation = motion.startRotation;
-	updateModelMatrix(*motion.target);
+	if (motion.setLocation || motion.setRotation) {
+		if (motion.setLocation) motion.target->location = motion.startLocation;
+		if (motion.setRotation) motion.target->rotation = motion.startRotation;
+		updateModelMatrix(*motion.target);
+	}
 	motion.secondsComplete = 0;
 }
 
@@ -175,7 +220,6 @@ void animate(float timePassed) {
 		// Check whether the motion has finished
 		motion.secondsComplete += timePassed;
 		if (motion.secondsComplete >= motion.duration) {
-			printf("Motion finished.\n");
 			nextMotion();
 		}
 	}
