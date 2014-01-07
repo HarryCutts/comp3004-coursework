@@ -11,6 +11,10 @@
 
 #include "scene.hpp"
 
+#define CAMERA_START_POSITION glm::vec3(-115, 19.5, 11.6)
+#define CAMERA_START_YAW -23.1
+#define CAMERA_START_PITCH 0.13
+
 void updateModelMatrix(DisplayObject &object) {
 	glm::mat4 rotateX = glm::rotate(glm::mat4(1.), object.rotation[0], glm::vec3(1, 0, 0));
 	glm::mat4 rotateY = glm::rotate(glm::mat4(1.), object.rotation[1], glm::vec3(0, 1, 0));
@@ -126,12 +130,18 @@ bool Motion::perform(float timePassed) {
 	return secondsComplete >= duration;
 }
 
+static DisplayObject *camera;
 static DisplayObject landscape, spaceship, clanger;
 static std::vector<Motion> motions;
 
-void setupScene(std::vector<DisplayObject*> &objects) {
+void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObject) {
 	glm::vec3 spaceshipEndLocation = glm::vec3(10, 0, 12);
 	glm::vec3 clangerLocation = glm::vec3(4.29, -1.0, -30);
+
+	// Initial camera position //
+	camera = &cameraObject;
+	camera->location = CAMERA_START_POSITION;
+	camera->rotation = glm::vec3(CAMERA_START_PITCH, CAMERA_START_YAW, 0);
 
 	// Static part //
 	objects.clear();
@@ -160,6 +170,7 @@ void setupScene(std::vector<DisplayObject*> &objects) {
 	glm::vec3 zero = glm::vec3(0, 0, 0);
 	glm::vec3 spaceshipStartLocation = glm::vec3(51.2, 80.0, -320);
 
+	Motion cameraSet(camera, 0, glm::vec3(18.940031, 2.809827, -32.122253), glm::vec3(-0.050559, -26.546928, 0));
 	Motion spaceshipSet(&spaceship, 0, spaceshipStartLocation, glm::vec3(15, 180, 0));
 
 	Motion clangerMotion1(&clanger, 2, zero, glm::vec3(0, 75, 0));
@@ -174,6 +185,7 @@ void setupScene(std::vector<DisplayObject*> &objects) {
 	Motion clangerEndMotion1(&clanger, 0.01, zero, glm::vec3(0, -150, 0));
 	Motion clangerEndMotion2(&clanger, 5, glm::vec3(0, 2.5, 0), zero);
 
+	motions.push_back(cameraSet);
 	motions.push_back(spaceshipSet);
 	motions.push_back(clangerMotion1);
 	motions.push_back(clangerMotion2);

@@ -19,7 +19,7 @@ struct DisplayObject {
 
 void updateModelMatrix(DisplayObject &object);
 
-void setupScene(std::vector<DisplayObject*> &objects);
+void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &camera);
 
 void startTour(void);
 bool isTourRunning(void);

@@ -24,21 +24,16 @@
 
 #define LIGHT_POSITION 5.f, 5.f, 3.f
 
-#define CAMERA_START_POSITION glm::vec3(-115, 19.5, 11.6)
-#define CAMERA_START_YAW -23.1
-#define CAMERA_START_PITCH 0.13
 #define CAMERA_ACCELERATION 2
 #define CAMERA_ROTATION_SPEED 0.4
 
 static GLuint prgNormals;
 static GLuint prgShaded;
 
+static DisplayObject camera;
 static std::vector<DisplayObject*> objects;
 
 static GLfloat cameraSpeed = 0;
-static glm::vec3 cameraPosition = CAMERA_START_POSITION;
-static GLfloat cameraYaw = CAMERA_START_YAW,
-		cameraPitch = CAMERA_START_PITCH;
 static glm::mat4 VP, V, P;
 
 static bool showNormals = false;
@@ -132,21 +127,21 @@ void setupShaders(void) {
 void moveCamera(float timePassed) {
 	// Code from http://opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/
 	glm::vec3 direction = glm::vec3(
-		cos(cameraPitch) * sin(cameraYaw),
-		sin(cameraPitch),
-		cos(cameraPitch) * cos(cameraYaw)
+		cos(camera.rotation[0]) * sin(camera.rotation[1]),
+		sin(camera.rotation[0]),
+		cos(camera.rotation[0]) * cos(camera.rotation[1])
 	);
 	glm::vec3 right = glm::vec3(
-		sin(cameraYaw - PI/2.0f),
+		sin(camera.rotation[1] - PI/2.0f),
 		0,
-		cos(cameraYaw - PI/2.0f)
+		cos(camera.rotation[1] - PI/2.0f)
 	);
 	glm::vec3 up = glm::cross(right, direction);
 	glm::vec3 movement = direction * cameraSpeed * timePassed;
-	cameraPosition += movement;
+	camera.location += movement;
 
-	glm::vec3 target = cameraPosition + direction;
-	V = glm::lookAt(cameraPosition, target, up);
+	glm::vec3 target = camera.location + direction;
+	V = glm::lookAt(camera.location, target, up);
 	P = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 400.0f);
 
 	VP = P * V;
@@ -186,8 +181,8 @@ bool processInput(float timePassed) {
 
 	bool d = glfwGetKey(static_cast<int>('D'));
 	if (d && !dPressed) {
-		printf("Camera position: (%f, %f, %f)\n", cameraPosition[0], cameraPosition[1], cameraPosition[2]);
-		printf("Camera angle: %f horizontal, %f vertical\n", cameraYaw, cameraPitch);
+		printf("Camera position: (%f, %f, %f)\n", camera.location[0], camera.location[1], camera.location[2]);
+		printf("Camera angle: %f horizontal, %f vertical\n", camera.rotation[1], camera.rotation[0]);
 	}
 	dPressed = d;
 
@@ -210,18 +205,18 @@ bool processInput(float timePassed) {
 
 	// Yaw
 	if (glfwGetKey(GLFW_KEY_LEFT) == GLFW_PRESS) {
-		cameraYaw += CAMERA_ROTATION_SPEED * timePassed;
+		camera.rotation[1] += CAMERA_ROTATION_SPEED * timePassed;
 	}
 	if (glfwGetKey(GLFW_KEY_RIGHT) == GLFW_PRESS) {
-		cameraYaw -= CAMERA_ROTATION_SPEED * timePassed;
+		camera.rotation[1] -= CAMERA_ROTATION_SPEED * timePassed;
 	}
 
 	// Pitch
 	if (glfwGetKey(GLFW_KEY_HOME) == GLFW_PRESS) {
-		cameraPitch += CAMERA_ROTATION_SPEED * timePassed;
+		camera.rotation[0] += CAMERA_ROTATION_SPEED * timePassed;
 	}
 	if (glfwGetKey(GLFW_KEY_END) == GLFW_PRESS) {
-		cameraPitch -= CAMERA_ROTATION_SPEED * timePassed;
+		camera.rotation[0] -= CAMERA_ROTATION_SPEED * timePassed;
 	}
 
 	return (glfwGetKey(GLFW_KEY_ESC) || glfwGetKey(static_cast<int>('Q')));
@@ -259,7 +254,7 @@ int main(void) {
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
 
-	setupScene(objects);
+	setupScene(objects, camera);
 	moveCamera(0);
 	checkForError("After scene setup");
 
