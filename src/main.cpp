@@ -22,7 +22,7 @@
 #define WINDOW_HEIGHT 600
 #define WINDOW_TITLE  "Graphics coursework 3, Harry Cutts"
 
-#define LIGHT_POSITION 5.f, 5.f, 3.f
+#define LIGHT_POSITION 310.f, 150.f, 150.f
 
 #define CAMERA_ACCELERATION 2
 #define CAMERA_ROTATION_SPEED 0.4
