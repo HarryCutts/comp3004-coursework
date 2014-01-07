@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <vector>
 #include <GL/glew.h>
@@ -13,6 +14,8 @@
 #include "scene.hpp"
 
 #define PI 3.14159265
+
+#define NUM_MUSIC_TREES 6
 
 #define CAMERA_START_POSITION glm::vec3(115, 30, 11.6)
 #define CAMERA_START_YAW 23.1
@@ -64,6 +67,7 @@ static DisplayObject createDisplayObject(const Mesh &mesh, const char *texturePa
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
 	glBindVertexArray(vao);
+	checkForError("after VAO creation");
 
 	// Create vertex attribute VBOs
 	createVertexAttribVBO<glm::vec3>(0, 3, mesh.vertices);
@@ -214,6 +218,7 @@ void animate(float timePassed) {
 
 static DisplayObject *camera;
 static DisplayObject landscape, spaceship, clanger;
+static std::vector<DisplayObject> musicTrees;
 
 void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObject) {
 	glm::vec3 spaceshipEndLocation = glm::vec3(10, 0, 12);
@@ -247,6 +252,20 @@ void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObjec
 	clanger.rotation = glm::vec3(0, 0, 0);
 	updateModelMatrix(clanger);
 	objects.push_back(&clanger);
+
+	Mesh musicTreeMesh = loadOBJ(MODEL("music-tree.obj"));
+	GLfloat musicTreeLocations[] = { -0.97,0,-2, -0.7,0,-1.74, -0.45,0,-1.48, -0.32,0,-2.25, 0.7,0.08,-2.38, 0.83,0.08,-2 };
+	for (unsigned int i = 0, j = 0; i < NUM_MUSIC_TREES; i++, j = i * 3) {
+		DisplayObject tree = createDisplayObject(musicTreeMesh, TEXTURE("music-tree.tga"));
+		tree.location = 33.0f * glm::vec3(musicTreeLocations[j], musicTreeLocations[j+1], musicTreeLocations[j+2]);
+		tree.rotation = glm::vec3(0, rand() % 90, 0);
+		tree.scale = rand() / float(RAND_MAX) + 2.5;
+		updateModelMatrix(tree);
+		musicTrees.push_back(tree);
+	}
+	for (unsigned int i = 0; i < NUM_MUSIC_TREES; i++) {
+		objects.push_back(&musicTrees[i]);
+	}
 
 	// Tour Animation: Models //
 	glm::vec3 zero = glm::vec3(0, 0, 0);
