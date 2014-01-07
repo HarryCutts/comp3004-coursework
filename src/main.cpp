@@ -142,7 +142,7 @@ void moveCamera(float timePassed) {
 
 	glm::vec3 target = camera.location + direction;
 	V = glm::lookAt(camera.location, target, up);
-	P = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 400.0f);
+	P = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 1000.0f);
 
 	VP = P * V;
 }

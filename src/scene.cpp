@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 #include <vector>
 #include <GL/glew.h>
 #include <GL/glfw.h>
@@ -10,6 +11,8 @@
 #include "generators.h"
 
 #include "scene.hpp"
+
+#define PI 3.14159265
 
 #define CAMERA_START_POSITION glm::vec3(-115, 19.5, 11.6)
 #define CAMERA_START_YAW -23.1
@@ -147,6 +150,7 @@ MotionSequence::MotionSequence(void) { finished = false; }
 
 void MotionSequence::startMotion(unsigned int newIndex) {
 	index = newIndex;
+	finished = false;
 	motions[index].start();
 }
 
@@ -205,6 +209,7 @@ static DisplayObject landscape, spaceship, clanger;
 
 void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObject) {
 	glm::vec3 spaceshipEndLocation = glm::vec3(10, 0, 12);
+	glm::vec3 spaceshipEndRotation = glm::vec3(-3, 180, 0);
 	glm::vec3 clangerLocation = glm::vec3(4.29, -1.0, -30);
 
 	// Initial camera position //
@@ -223,7 +228,7 @@ void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObjec
 	Mesh spaceshipMesh = loadOBJ(MODEL("spaceship.obj"));
 	spaceship = createDisplayObject(spaceshipMesh, TEXTURE("spaceship.tga"));
 	spaceship.location = spaceshipEndLocation;
-	spaceship.rotation = glm::vec3(0, 180, 0);
+	spaceship.rotation = spaceshipEndRotation;
 	spaceship.scale = 3;
 	updateModelMatrix(spaceship);
 	objects.push_back(&spaceship);
@@ -237,10 +242,13 @@ void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObjec
 
 	// Tour Animation: Models //
 	glm::vec3 zero = glm::vec3(0, 0, 0);
-	glm::vec3 spaceshipStartLocation = glm::vec3(51.2, 80.0, -320);
+	glm::vec3 spaceshipStartLocation = glm::vec3(128, 100, -800);
+	glm::vec3 spaceshipStartRotation = glm::vec3(15, 180, 0);
+	glm::vec3 spaceshipPath         = spaceshipEndLocation - spaceshipStartLocation;
+	glm::vec3 spaceshipRotationPath = spaceshipEndRotation - spaceshipStartRotation;
 
 	MotionSequence modelSequence;
-	Motion spaceshipSet(&spaceship, 0, spaceshipStartLocation, glm::vec3(15, 180, 0));
+	Motion spaceshipSet(&spaceship, 0, spaceshipStartLocation, spaceshipStartRotation);
 
 	Motion clangerMotion1(&clanger, 2, zero, glm::vec3(0, 75, 0));
 	Motion clangerMotion2(&clanger, 4, zero, glm::vec3(0, -150, 0));
@@ -249,7 +257,7 @@ void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObjec
 	Motion clangerMotion4(&clanger, 0.3, glm::vec3(0, 0.4, 0), zero);
 	Motion clangerMotion5(&clanger, 0.3, glm::vec3(0, -3.4, 0), zero);
 
-	Motion spaceshipMotion(&spaceship, 5, spaceshipEndLocation - spaceshipStartLocation, glm::vec3(-18, 0, 0));
+	Motion spaceshipMotion(&spaceship, 10, spaceshipPath, spaceshipRotationPath);
 
 	Motion clangerEndMotion1(&clanger, 0.01, zero, glm::vec3(0, -150, 0));
 	Motion clangerEndMotion2(&clanger, 5, glm::vec3(0, 2.5, 0), zero);
@@ -270,8 +278,19 @@ void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObjec
 	// Tour Animation: Camera //
 	MotionSequence cameraSequence;
 	Motion cameraSet1(camera, 0, glm::vec3(18.940031, 2.809827, -32.122253), glm::vec3(-0.050559, -26.546928, 0));
+	Motion cameraPause1(camera, 10.6);
+	Motion cameraSet2(camera, 0, glm::vec3(27.815826, 6.820219, -65.316856), glm::vec3(0.183383, -27.983179, 0));
+	Motion cameraPause2(camera, 5);
+	Motion cameraSet3(camera, 0, spaceshipStartLocation + (0.5f * spaceshipPath) + glm::vec3(0, -3, 0),
+			(float)(PI/180) * (spaceshipStartRotation - glm::vec3(0, 180, 0)));
+	Motion cameraMotion1(camera, 4, 0.35f * spaceshipPath, 0.35f * (float)(PI/180) * spaceshipRotationPath);
 
 	cameraSequence.motions.push_back(cameraSet1);
+	cameraSequence.motions.push_back(cameraPause1);
+	cameraSequence.motions.push_back(cameraSet2);
+	cameraSequence.motions.push_back(cameraPause2);
+	cameraSequence.motions.push_back(cameraSet3);
+	cameraSequence.motions.push_back(cameraMotion1);
 	sequences.push_back(cameraSequence);
 }
 
