@@ -31,6 +31,6 @@ void main() {
 
 	color = ambientColor +
 	        diffuseColor * lightColor * cosTheta +
-	        specularColor * lightColor * pow(cosAlpha, 5);  // Increase 5 for a thinner lobe
+	        vec3(0.5, 0.5, 0.5) * specularColor * lightColor * pow(cosAlpha, 3);  // Increase 5 for a thinner lobe
 	// TODO: make the light fade by distance to the source?
 }
