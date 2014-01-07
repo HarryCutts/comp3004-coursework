@@ -18,7 +18,7 @@ void main() {
 	vec3 n = normalize(csNormal);
 	vec3 l = normalize(csLightDirection);
 
-	float cosTheta = dot(n, l);
+	float cosTheta = clamp(dot(n, l), 0, 1);
 
 	// Ambient lighting
 	vec3 ambientColor = vec3(0.1, 0.1, 0.1) * diffuseColor;
