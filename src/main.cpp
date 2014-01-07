@@ -14,6 +14,7 @@
 #include "paths.h"
 #include "utils.h"
 #include "generators.h"
+#include "scene.hpp"
 
 #define PI 3.14159265
 
@@ -26,27 +27,6 @@
 #define CAMERA_START_POSITION glm::vec3(10, 10, 10)
 #define CAMERA_ACCELERATION 2
 #define CAMERA_ROTATION_SPEED 0.4
-
-struct MVPSet {
-	glm::mat4 mvp;
-	glm::mat4 m;
-	glm::mat4 v;
-	glm::mat4 p;
-};
-
-struct DisplayObject {
-	int numVertices;
-	int numIndices;
-	GLuint vao;
-
-	GLuint tex;
-
-	glm::vec3 location;
-	glm::vec3 rotation;
-	GLfloat scale;
-
-	glm::mat4 modelMatrix;
-};
 
 static GLuint prgNormals;
 static GLuint prgShaded;
@@ -107,26 +87,6 @@ GLuint createProgram(GLuint shdVertex, GLuint shdGeometry, GLuint shdFragment) {
 	return prgProgram;
 }
 
-/** Loads and binds the texture stored in the TGA file at the given path.
- * @return the ID of the loaded texture (prefix `tex`). */
-GLuint loadTGA(const char *imagePath) {
-	// Method from http://opengl-tutorial.org/beginners-tutorials/tutorial-5-a-textured-cube/#How_to_load_texture_with_GLFW
-	GLuint tex;
-	glGenTextures(1, &tex);
-    glBindTexture(GL_TEXTURE_2D, tex);
-
-    glfwLoadTexture2D(imagePath, 0);
-
-    // Nice trilinear filtering
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    return tex;
-}
-
 // Setup methods //
 
 void setupShaders(void) {
@@ -166,69 +126,6 @@ void setupShaders(void) {
 	glUseProgram(prgShaded);
 }
 
-/** Creates a Vertex Buffer Object, fills it with the given items, and binds it
- * as a Vertex Attribute Array.
- * @param index         The index of the generic vertex attribute to be modified.
- * @param numComponents The number of components per generic vertex attribute.
- * @param items         A std::vector containing the data.
- * @tparam T The type of the items in the data.
- * @return the index of the Vertex Buffer Object (prefix `vbo`).
- */
-template <class T>
-static GLuint createVertexAttribVBO(GLuint index, GLint numComponents, const std::vector<T> &items) {
-	GLuint vbo;
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(T) * items.size(), items.data(), GL_STATIC_DRAW);
-
-	// Bind as vertex attribute array
-	glEnableVertexAttribArray(index);
-	glVertexAttribPointer(index, numComponents, GL_FLOAT, GL_FALSE, 0, 0);
-
-	return vbo;
-}
-
-void updateModelMatrix(DisplayObject &object) {
-	glm::mat4 rotateX = glm::rotate(glm::mat4(1.), object.rotation[0], glm::vec3(1, 0, 0));
-	glm::mat4 rotateY = glm::rotate(glm::mat4(1.), object.rotation[1], glm::vec3(0, 1, 0));
-	glm::mat4 rotateZ = glm::rotate(glm::mat4(1.), object.rotation[2], glm::vec3(0, 0, 1));
-	glm::mat4 scale = glm::scale(glm::mat4(1.), glm::vec3(object.scale, object.scale, object.scale));
-	glm::mat4 translate  = glm::translate(glm::mat4(1.), object.location);
-	glm::mat4 matrix = translate * scale * rotateZ * rotateY * rotateX;
-
-	object.modelMatrix = matrix;
-}
-
-DisplayObject createDisplayObject(const Mesh &mesh, const char *texturePath) {
-	// Create a VAO
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-
-	// Create vertex attribute VBOs
-	createVertexAttribVBO<glm::vec3>(0, 3, mesh.vertices);
-	createVertexAttribVBO<glm::vec3>(1, 3, mesh.normals);
-	createVertexAttribVBO<glm::vec2>(2, 2, mesh.texCoords);
-
-	// Indices VBO
-	GLuint vboIndices;
-	glGenBuffers(1, &vboIndices);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndices);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * mesh.indices.size(), mesh.indices.data(), GL_STATIC_DRAW);
-
-	// DisplayObject
-	DisplayObject obj;
-	obj.vao = vao;
-	obj.numVertices = mesh.vertices.size();
-	obj.numIndices  = mesh.indices.size();
-	obj.tex = loadTGA(texturePath);  // TODO: prevent textures being loaded twice
-	obj.location = glm::vec3(0., 0., 0.);
-	obj.rotation = glm::vec3(0., 0., 0.);
-	obj.scale = 1;
-
-	return obj;
-}
-
 void moveCamera(float timePassed) {
 	// Code from http://opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/
 	glm::vec3 direction = glm::vec3(
@@ -250,26 +147,6 @@ void moveCamera(float timePassed) {
 	P = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 200.0f);
 
 	VP = P * V;
-}
-
-static DisplayObject landscape, crate, clanger;
-
-void scene() {
-	glm::vec3 clangerLocation = glm::vec3(4.29, -1.0, -30);
-
-	objects.clear();
-	Mesh landscapeMesh = loadOBJ(MODEL("landscape.obj"));
-	landscape = createDisplayObject(landscapeMesh, TEXTURE("landscape.tga"));
-	landscape.scale = 33;
-	updateModelMatrix(landscape);
-	objects.push_back(&landscape);
-
-	Mesh clangerMesh = loadOBJ(MODEL("clanger.obj"));
-	clanger = createDisplayObject(clangerMesh, TEXTURE("clanger.tga"));
-	clanger.location = clangerLocation;
-	clanger.rotation = glm::vec3(0, -90, 0);
-	updateModelMatrix(clanger);
-	objects.push_back(&clanger);
 }
 
 // Main loop methods //
@@ -365,7 +242,7 @@ int main(void) {
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
 
-	scene();
+	setupScene(objects);
 	moveCamera(0);
 	checkForError("After scene setup");
 
