@@ -170,7 +170,7 @@ void drawObject(DisplayObject* obj) {
 	glDrawElements(GL_TRIANGLES, obj->numIndices, GL_UNSIGNED_INT, NULL);
 }
 
-static bool nPressed = false, dPressed = false;
+static bool nPressed = false, dPressed = false, pPressed = false;
 
 bool processInput(float timePassed) {
 	bool n = glfwGetKey(static_cast<int>('N'));
@@ -178,6 +178,14 @@ bool processInput(float timePassed) {
 		showNormals = !showNormals;
 	}
 	nPressed = n;
+
+	bool p = glfwGetKey(static_cast<int>('P'));
+	if (p && !pPressed) {
+		camera.location = SCREENSHOT_LOCATION;
+		camera.rotation = glm::vec3(SCREENSHOT_PITCH, SCREENSHOT_YAW, 0);
+		cameraSpeed = 0;
+	}
+	pPressed = p;
 
 	bool d = glfwGetKey(static_cast<int>('D'));
 	if (d && !dPressed) {
