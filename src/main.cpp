@@ -187,6 +187,7 @@ bool processInput(float timePassed) {
 		char* readme = fileToBuffer("readme.txt");
 		printf("\n%s\n", readme);
 	}
+	hPressed = h;
 
 	bool p = glfwGetKey(static_cast<int>('P'));
 	if (p && !pPressed) {
