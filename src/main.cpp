@@ -151,6 +151,7 @@ void moveCamera(float timePassed) {
 
 void drawObject(DisplayObject* obj) {
 	glBindVertexArray(obj->vao);
+	checkForError("after VAO bind");
 
 	// Set the MVP
 	glm::mat4 MVP = VP * obj->modelMatrix;
@@ -166,8 +167,10 @@ void drawObject(DisplayObject* obj) {
 
 	// Set the texture
 	glBindTexture(GL_TEXTURE_2D, obj->tex);
+	checkForError("after texture bind");
 
 	glDrawElements(GL_TRIANGLES, obj->numIndices, GL_UNSIGNED_INT, NULL);
+	checkForError("after object draw");
 }
 
 static bool nPressed = false, hPressed = false, dPressed = false, pPressed = false;
@@ -293,7 +296,7 @@ int main(void) {
 		}*/
 
 		glfwSwapBuffers();
-		checkForError("main loop");
+		checkForError("after swap");
 
 		double currentTime = glfwGetTime();
 		float timePassed = float(currentTime - lastTime);

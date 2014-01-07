@@ -108,6 +108,7 @@ struct Motion {
 
 		void start(void);
 		bool perform(float timePassed);
+		bool performBackground(float timePassed);
 };
 
 Motion::Motion(DisplayObject *myTarget, float myDuration) {
@@ -145,6 +146,20 @@ bool Motion::perform(float timePassed) {
 	return secondsComplete >= duration;
 }
 
+bool Motion::performBackground(float timePassed) {
+	glm::vec3 movement = (moveBy / duration)   * timePassed * float(sin(secondsComplete * 2 * PI / duration));
+	glm::vec3 rotation = (rotateBy / duration) * timePassed * float(sin(secondsComplete * 2 * PI / duration));
+	target->location += movement;
+	target->rotation += rotation;
+	updateModelMatrix(*target);
+
+	secondsComplete += timePassed;
+	if (secondsComplete >= duration) {
+		secondsComplete -= duration;
+	}
+	return false;
+}
+
 void checkForFinish(void);
 
 struct MotionSequence {
@@ -176,6 +191,7 @@ void MotionSequence::nextMotion(void) {
 }
 
 static std::vector<MotionSequence> sequences;
+static std::vector<Motion> backgroundMotions;
 static bool tourRunning = false;
 
 void checkForFinish(void) {
@@ -213,6 +229,10 @@ void animate(float timePassed) {
 				sequences[i].nextMotion();
 			}
 		}
+	}
+
+	for (unsigned int i = 0; i < backgroundMotions.size(); i++) {
+		backgroundMotions[i].performBackground(timePassed);
 	}
 }
 
@@ -254,7 +274,7 @@ void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObjec
 	objects.push_back(&clanger);
 
 	Mesh musicTreeMesh = loadOBJ(MODEL("music-tree.obj"));
-	GLfloat musicTreeLocations[] = { -0.97,0,-2, -0.7,0,-1.74, -0.45,0,-1.48, -0.32,0,-2.25, 0.7,0.08,-2.38, 0.83,0.08,-2 };
+	GLfloat musicTreeLocations[] = { -0.97,0,-2, -0.7,0,-1.74, -0.45,0,-1.48, -0.32,0,-2.25, 0.7,0.08,-2.38, 1,0.08,-2.5 };
 	for (unsigned int i = 0, j = 0; i < NUM_MUSIC_TREES; i++, j = i * 3) {
 		DisplayObject tree = createDisplayObject(musicTreeMesh, TEXTURE("music-tree.tga"));
 		tree.location = 33.0f * glm::vec3(musicTreeLocations[j], musicTreeLocations[j+1], musicTreeLocations[j+2]);
@@ -267,8 +287,14 @@ void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObjec
 		objects.push_back(&musicTrees[i]);
 	}
 
-	// Tour Animation: Models //
+	// Background animation //
 	glm::vec3 zero = glm::vec3(0, 0, 0);
+	for (unsigned int i = 0; i < NUM_MUSIC_TREES; i++) {
+		Motion m(&musicTrees[i], 6, zero, glm::vec3(0, rand() / float(RAND_MAX) * 10 + 15, rand() / float(RAND_MAX) * 10 + 15));
+		backgroundMotions.push_back(m);
+	}
+
+	// Tour Animation: Models //
 	glm::vec3 spaceshipStartLocation = glm::vec3(128, 100, -800);
 	glm::vec3 spaceshipStartRotation = glm::vec3(15, 180, 0);
 	glm::vec3 spaceshipPath         = spaceshipEndLocation - spaceshipStartLocation;
@@ -276,6 +302,8 @@ void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObjec
 
 	MotionSequence modelSequence;
 	Motion spaceshipSet(&spaceship, 0, spaceshipStartLocation, spaceshipStartRotation);
+
+	Motion pauseForTrees(&clanger, 8);
 
 	Motion clangerMotion1(&clanger, 2, zero, glm::vec3(0, 75, 0));
 	Motion clangerMotion2(&clanger, 4, zero, glm::vec3(0, -150, 0));
@@ -294,6 +322,7 @@ void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObjec
 	Motion clangerEndMotion1(&clanger, 5, glm::vec3(0, 3, 0), zero);
 
 	modelSequence.motions.push_back(spaceshipSet);
+	modelSequence.motions.push_back(pauseForTrees);
 	modelSequence.motions.push_back(clangerMotion1);
 	modelSequence.motions.push_back(clangerMotion2);
 	modelSequence.motions.push_back(clangerMotion3);
@@ -313,7 +342,10 @@ void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObjec
 	sequences.push_back(modelSequence);
 
 	// Tour Animation: Camera //
+	glm::vec3 treeShotStart = glm::vec3(33.966553, 7.829541, -73.689774);
 	MotionSequence cameraSequence;
+	Motion treeShotSet(camera, 0, treeShotStart, glm::vec3(-0.110654, 22.685890, 0));
+	Motion treeShot(camera, 8, glm::vec3(-36.198856, 3.906219, -59.656364) - treeShotStart, zero);
 	Motion clangerView1(camera, 0, glm::vec3(18.940031, 2.809827, -32.122253), glm::vec3(-0.050559, -26.546928, 0));
 	Motion cameraPause1(camera, 10.6);
 
@@ -331,6 +363,8 @@ void setupScene(std::vector<DisplayObject*> &objects, DisplayObject &cameraObjec
 	Motion clangerView2(camera, 0, glm::vec3(38.303978, 4.071294, 1.528273), glm::vec3(-0.070362, -27.034525, 0));
 			// View of clanger and crashed ship
 
+	cameraSequence.motions.push_back(treeShotSet);
+	cameraSequence.motions.push_back(treeShot);
 	cameraSequence.motions.push_back(clangerView1);
 	cameraSequence.motions.push_back(cameraPause1);
 	cameraSequence.motions.push_back(cameraSet2);
