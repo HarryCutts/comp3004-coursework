@@ -24,7 +24,9 @@
 
 #define LIGHT_POSITION 5.f, 5.f, 3.f
 
-#define CAMERA_START_POSITION glm::vec3(10, 10, 10)
+#define CAMERA_START_POSITION glm::vec3(-115, 19.5, 11.6)
+#define CAMERA_START_YAW -23.1
+#define CAMERA_START_PITCH 0.13
 #define CAMERA_ACCELERATION 2
 #define CAMERA_ROTATION_SPEED 0.4
 
@@ -35,7 +37,8 @@ static std::vector<DisplayObject*> objects;
 
 static GLfloat cameraSpeed = 0;
 static glm::vec3 cameraPosition = CAMERA_START_POSITION;
-static GLfloat cameraYaw = 0, cameraPitch = 0;
+static GLfloat cameraYaw = CAMERA_START_YAW,
+		cameraPitch = CAMERA_START_PITCH;
 static glm::mat4 VP, V, P;
 
 static bool showNormals = false;
@@ -172,7 +175,7 @@ void drawObject(DisplayObject* obj) {
 	glDrawElements(GL_TRIANGLES, obj->numIndices, GL_UNSIGNED_INT, NULL);
 }
 
-static bool nPressed = false;
+static bool nPressed = false, dPressed = false;
 
 bool processInput(float timePassed) {
 	bool n = glfwGetKey(static_cast<int>('N'));
@@ -180,6 +183,13 @@ bool processInput(float timePassed) {
 		showNormals = !showNormals;
 	}
 	nPressed = n;
+
+	bool d = glfwGetKey(static_cast<int>('D'));
+	if (d && !dPressed) {
+		printf("Camera position: (%f, %f, %f)\n", cameraPosition[0], cameraPosition[1], cameraPosition[2]);
+		printf("Camera angle: %f horizontal, %f vertical\n", cameraYaw, cameraPitch);
+	}
+	dPressed = d;
 
 	// Camera movement (adapted from http://opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/)
 	// Speed
