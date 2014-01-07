@@ -92,6 +92,8 @@ struct Motion {
 	public:
 		Motion(DisplayObject*, float);
 		Motion(DisplayObject *myTarget, float myDuration, glm::vec3 myMoveBy, glm::vec3 myRotateBy);
+
+		bool perform(float timePassed);
 };
 
 Motion::Motion(DisplayObject *myTarget, float myDuration) {
@@ -108,6 +110,17 @@ Motion::Motion(DisplayObject *myTarget, float myDuration, glm::vec3 myMoveBy, gl
 	setRotation = false;
 	moveBy = myMoveBy;
 	rotateBy = myRotateBy;
+}
+
+bool Motion::perform(float timePassed) {
+	glm::vec3 movement = (moveBy / duration) * timePassed;
+	glm::vec3 rotation = (rotateBy / duration) * timePassed;
+	target->location += movement;
+	target->rotation += rotation;
+	updateModelMatrix(*target);
+
+	secondsComplete += timePassed;
+	return secondsComplete >= duration;
 }
 
 static DisplayObject landscape, spaceship, clanger;
@@ -208,18 +221,9 @@ bool isTourRunning(void) {
 
 void animate(float timePassed) {
 	if (tourRunning) {
-		// Perform the motion
-		Motion &motion = motions[motionIndex];
-		glm::vec3 movement = (motion.moveBy / motion.duration) * timePassed;
-		glm::vec3 rotation = (motion.rotateBy / motion.duration) * timePassed;
-		DisplayObject *target = motion.target;
-		target->location += movement;
-		target->rotation += rotation;
-		updateModelMatrix(*target);
+		bool motionFinished = motions[motionIndex].perform(timePassed);
 
-		// Check whether the motion has finished
-		motion.secondsComplete += timePassed;
-		if (motion.secondsComplete >= motion.duration) {
+		if (motionFinished) {
 			nextMotion();
 		}
 	}
