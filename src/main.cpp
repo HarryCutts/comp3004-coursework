@@ -170,7 +170,7 @@ void drawObject(DisplayObject* obj) {
 	glDrawElements(GL_TRIANGLES, obj->numIndices, GL_UNSIGNED_INT, NULL);
 }
 
-static bool nPressed = false, dPressed = false, pPressed = false;
+static bool nPressed = false, hPressed = false, dPressed = false, pPressed = false;
 
 bool processInput(float timePassed) {
 	bool n = glfwGetKey(static_cast<int>('N'));
@@ -178,6 +178,12 @@ bool processInput(float timePassed) {
 		showNormals = !showNormals;
 	}
 	nPressed = n;
+
+	bool h = glfwGetKey(static_cast<int>('H'));
+	if (h && !hPressed) {
+		char* readme = fileToBuffer("readme.txt");
+		printf("\n%s\n", readme);
+	}
 
 	bool p = glfwGetKey(static_cast<int>('P'));
 	if (p && !pPressed) {

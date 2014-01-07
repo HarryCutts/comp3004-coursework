@@ -1,5 +1,6 @@
 Models
 ======
+
 The models which I used are all my own, made with Blender. I have made my clanger model available to my fellow students under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 license. It is accompanied by instructions to acknowledge me as the source in the user's `credits.txt` file.
 
 Textures
