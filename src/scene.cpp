@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <vector>
 #include <GL/glew.h>
 #include <GL/glfw.h>
@@ -73,12 +74,28 @@ static DisplayObject createDisplayObject(const Mesh &mesh, const char *texturePa
 	return obj;
 }
 
+struct Motion {
+	DisplayObject *target;
+
+	glm::vec3 startLocation;
+	glm::vec3 startRotation;
+
+	glm::vec3 moveBy;
+	glm::vec3 rotateBy;
+
+	float duration;
+
+	float secondsComplete;
+};
+
 static DisplayObject landscape, spaceship, clanger;
+static std::vector<Motion> motions;
 
 void setupScene(std::vector<DisplayObject*> &objects) {
 	glm::vec3 spaceshipEndLocation = glm::vec3(10, 0, 12);
 	glm::vec3 clangerLocation = glm::vec3(4.29, -1.0, -30);
 
+	// Static part //
 	objects.clear();
 	Mesh landscapeMesh = loadOBJ(MODEL("landscape.obj"));
 	landscape = createDisplayObject(landscapeMesh, TEXTURE("landscape.tga"));
@@ -100,21 +117,66 @@ void setupScene(std::vector<DisplayObject*> &objects) {
 	clanger.rotation = glm::vec3(0, -90, 0);
 	updateModelMatrix(clanger);
 	objects.push_back(&clanger);
+
+	// Animation //
+	Motion spaceshipMotion;
+	spaceshipMotion.target = &spaceship;
+	spaceshipMotion.startLocation = glm::vec3(51.2, 80.0, -320);
+	spaceshipMotion.startRotation = glm::vec3(15, 180, 0);
+
+	spaceshipMotion.moveBy = spaceshipEndLocation - spaceshipMotion.startLocation;
+	spaceshipMotion.rotateBy = glm::vec3(-18, 0, 0);
+
+	spaceshipMotion.duration = 5;
+	motions.push_back(spaceshipMotion);
 }
 
-struct Motion {
-	DisplayObject *target;
+static bool tourRunning = false;
+static unsigned int motionIndex;
 
-	glm::vec3 startLocation;
-	glm::vec3 startOrientation;
+static void startMotion(unsigned int index) {
+	motionIndex = index;
+	Motion &motion = motions[index];
+	motion.target->location = motion.startLocation;
+	motion.target->rotation = motion.startRotation;
+	updateModelMatrix(*motion.target);
+	motion.secondsComplete = 0;
+}
 
-	glm::vec3 moveBy;
-	glm::vec3 rotateBy;
+static void nextMotion(void) {
+	if (motionIndex + 1 < motions.size()) {
+		startMotion(motionIndex + 1);
+	} else {
+		printf("Tour finished.\n");
+		tourRunning = false;
+	}
+}
 
-	float duration;
+void startTour(void) {
+	tourRunning = true;
+	startMotion(0);
+}
 
-	float secondsComplete;
-};
+bool isTourRunning(void) {
+	return tourRunning;
+}
 
 void animate(float timePassed) {
+	if (tourRunning) {
+		// Perform the motion
+		Motion &motion = motions[motionIndex];
+		glm::vec3 movement = (motion.moveBy / motion.duration) * timePassed;
+		glm::vec3 rotation = (motion.rotateBy / motion.duration) * timePassed;
+		DisplayObject *target = motion.target;
+		target->location += movement;
+		target->rotation += rotation;
+		updateModelMatrix(*target);
+
+		// Check whether the motion has finished
+		motion.secondsComplete += timePassed;
+		if (motion.secondsComplete >= motion.duration) {
+			printf("Motion finished.\n");
+			nextMotion();
+		}
+	}
 }

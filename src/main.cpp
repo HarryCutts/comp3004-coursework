@@ -147,7 +147,7 @@ void moveCamera(float timePassed) {
 
 	glm::vec3 target = cameraPosition + direction;
 	V = glm::lookAt(cameraPosition, target, up);
-	P = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 200.0f);
+	P = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 400.0f);
 
 	VP = P * V;
 }
@@ -190,6 +190,13 @@ bool processInput(float timePassed) {
 		printf("Camera angle: %f horizontal, %f vertical\n", cameraYaw, cameraPitch);
 	}
 	dPressed = d;
+
+	bool t = glfwGetKey(static_cast<int>('T'));
+	if (t && !isTourRunning()) {
+		printf("Starting the tour.\n");
+		cameraSpeed = 0;
+		startTour();
+	}
 
 	// Camera movement (adapted from http://opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/)
 	// Speed
@@ -281,6 +288,7 @@ int main(void) {
 
 		double currentTime = glfwGetTime();
 		float timePassed = float(currentTime - lastTime);
+		animate(timePassed);
 
 		shouldExit = processInput(timePassed);
 		moveCamera(timePassed);

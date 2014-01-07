@@ -21,6 +21,9 @@ void updateModelMatrix(DisplayObject &object);
 
 void setupScene(std::vector<DisplayObject*> &objects);
 
+void startTour(void);
+bool isTourRunning(void);
+
 void animate(float timePassed);
 
 #endif
