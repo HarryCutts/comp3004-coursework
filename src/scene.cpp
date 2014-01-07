@@ -73,9 +73,10 @@ static DisplayObject createDisplayObject(const Mesh &mesh, const char *texturePa
 	return obj;
 }
 
-static DisplayObject landscape, crate, clanger;
+static DisplayObject landscape, spaceship, clanger;
 
 void setupScene(std::vector<DisplayObject*> &objects) {
+	glm::vec3 spaceshipEndLocation = glm::vec3(10, 0, 12);
 	glm::vec3 clangerLocation = glm::vec3(4.29, -1.0, -30);
 
 	objects.clear();
@@ -85,6 +86,14 @@ void setupScene(std::vector<DisplayObject*> &objects) {
 	updateModelMatrix(landscape);
 	objects.push_back(&landscape);
 
+	Mesh spaceshipMesh = loadOBJ(MODEL("spaceship.obj"));
+	spaceship = createDisplayObject(spaceshipMesh, TEXTURE("spaceship.tga"));
+	spaceship.location = spaceshipEndLocation;
+	spaceship.rotation = glm::vec3(0, 180, 0);
+	spaceship.scale = 3;
+	updateModelMatrix(spaceship);
+	objects.push_back(&spaceship);
+
 	Mesh clangerMesh = loadOBJ(MODEL("clanger.obj"));
 	clanger = createDisplayObject(clangerMesh, TEXTURE("clanger.tga"));
 	clanger.location = clangerLocation;
@@ -92,6 +101,20 @@ void setupScene(std::vector<DisplayObject*> &objects) {
 	updateModelMatrix(clanger);
 	objects.push_back(&clanger);
 }
+
+struct Motion {
+	DisplayObject *target;
+
+	glm::vec3 startLocation;
+	glm::vec3 startOrientation;
+
+	glm::vec3 moveBy;
+	glm::vec3 rotateBy;
+
+	float duration;
+
+	float secondsComplete;
+};
 
 void animate(float timePassed) {
 }
